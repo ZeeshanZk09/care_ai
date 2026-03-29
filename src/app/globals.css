@@ -1,6 +1,6 @@
-@import "tailwindcss";
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -9,6 +9,7 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-geist-mono);
+  --font-inter: var(--font-inter);
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -46,6 +47,18 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+@layer utilities {
+  .font-inter {
+    font-family: var(--font-inter);
+  }
+  .font-geist-mono {
+    font-family: var(--font-geist-mono);
+  }
+  .font-sans {
+    font-family: var(--font-sans);
+  }
 }
 
 :root {
@@ -125,6 +138,48 @@
     @apply bg-background text-foreground;
   }
   html {
-    @apply font-sans;
+    @apply font-inter;
+  }
+  button {
+    @apply cursor-pointer;
+  }
+}
+
+@layer components {
+  /* Reusable Modular UI Components */
+  .section-container {
+    @apply w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16 lg:py-24;
+  }
+
+  .heading-1 {
+    @apply text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight text-foreground;
+  }
+
+  .heading-2 {
+    @apply text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-foreground mb-6;
+  }
+
+  .heading-3 {
+    @apply text-2xl sm:text-3xl font-semibold tracking-tight text-foreground mb-4;
+  }
+
+  .subtext {
+    @apply text-base sm:text-lg text-muted-foreground max-w-3xl;
+  }
+
+  .card-responsive {
+    @apply bg-card text-card-foreground rounded-xl border border-border shadow-sm transition-all duration-200 hover:shadow-md;
+  }
+
+  .flex-center {
+    @apply flex items-center justify-center;
+  }
+
+  .flex-between {
+    @apply flex items-center justify-between;
+  }
+
+  .grid-cards {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8;
   }
 }
