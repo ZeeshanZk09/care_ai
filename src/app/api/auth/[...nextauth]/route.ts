@@ -1,2 +1,5 @@
-import { handlers } from '@/auth'; // Referring to the auth.ts we just created
-export const { GET, POST } = handlers;
+import { handlers } from '@/auth';
+import { withApiRequestAudit } from '@/lib/api/request-audit';
+
+export const GET = withApiRequestAudit(async (request) => handlers.GET(request as any));
+export const POST = withApiRequestAudit(async (request) => handlers.POST(request as any));

@@ -1,18 +1,19 @@
 'use client';
 import { Button } from '@/components/ui/button';
-import { useSession } from 'next-auth/react';
 import { ArrowRight, Loader } from 'lucide-react';
 import Image from 'next/image';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 export default function DoctorAgentCard({
+  id,
   description,
   image,
   specialist,
+  subscriptionRequired,
   voiceId,
+  currentPlan,
 }: Readonly<{
   agentPrompt: string;
   description: string;
@@ -21,12 +22,13 @@ export default function DoctorAgentCard({
   specialist: string;
   subscriptionRequired: boolean;
   voiceId: string;
+  currentPlan: 'FREE' | 'BASIC' | 'PRO';
 }>) {
   const [tooltipVisible, setTooltipVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const { data: session } = useSession();
-  const user = session?.user;
+  const isLockedForFreePlan = subscriptionRequired && currentPlan === 'FREE';
+
   useEffect(() => {
     let timer: NodeJS.Timeout | undefined;
 
@@ -43,10 +45,12 @@ export default function DoctorAgentCard({
 
   const onStartConsultation = async () => {
     try {
-      if (!user?.id) {
-        toast.error('User not authenticated.');
+      if (isLockedForFreePlan) {
+        toast.error('This specialist requires Basic or Pro plan. Please upgrade.');
+        router.push('/pricing');
         return;
       }
+
       setLoading(true);
       const response = await fetch('/api/session-chat', {
         method: 'POST',
@@ -54,9 +58,11 @@ export default function DoctorAgentCard({
         body: JSON.stringify({
           notes: '',
           selectedDoctor: {
+            id,
             description,
             image,
             specialist,
+            subscriptionRequired,
             voiceId,
           },
           output: null,
@@ -64,9 +70,10 @@ export default function DoctorAgentCard({
       });
       if (!response.ok) {
         setLoading(false);
-        const error = await response.text();
-        console.error('Error starting consultation:', error);
-        toast.error('Failed to start consultation. Please try again.');
+        const errorBody = await response.json().catch(() => null);
+        const message = errorBody?.error || 'Failed to start consultation. Please try again.';
+        console.error('Error starting consultation:', message);
+        toast.error(message);
         return;
       }
       const result = await response.json();
@@ -85,7 +92,7 @@ export default function DoctorAgentCard({
     <div
       id='agent-card'
       title={`${voiceId}: ${description}`}
-      className='cursor-pointer relative shadow-lg p-3 rounded-lg min-h-[100px] bg-white flex flex-col gap-4 items-start'
+      className='cursor-pointer relative shadow-lg p-3 rounded-lg min-h-25 bg-white flex flex-col gap-4 items-start'
     >
       <input
         type='button'
@@ -101,7 +108,7 @@ export default function DoctorAgentCard({
         </div>
       )}
 
-      <div className='w-full flex-shrink-0'>
+      <div className='w-full shrink-0'>
         <Image
           src={image}
           alt={specialist}
@@ -118,10 +125,15 @@ export default function DoctorAgentCard({
         </p>
       </div>
 
-      <div className='w-full sm:w-auto flex-shrink-0'>
-        <Button onClick={onStartConsultation} className='w-full sm:w-auto' disabled={loading}>
+      <div className='w-full sm:w-auto shrink-0'>
+        <Button
+          onClick={onStartConsultation}
+          className='w-full sm:w-auto'
+          disabled={loading}
+          variant={isLockedForFreePlan ? 'outline' : 'default'}
+        >
           {loading && <Loader />}
-          Start Consultation <ArrowRight />
+          {isLockedForFreePlan ? 'Upgrade to Access' : 'Start Consultation'} <ArrowRight />
         </Button>
       </div>
     </div>

@@ -1,70 +1,276 @@
 import { auth } from '@/auth';
+import {
+  EntitlementError,
+  checkConsultationAccess,
+  consumeConsultationCredit,
+  getEntitlementSnapshot,
+} from '@/lib/billing/entitlements';
+import { withApiRequestAudit } from '@/lib/api/request-audit';
+import { AIDoctorAgents } from '@/lib/data/list';
 import prisma from '@/lib/prisma';
+import { enforceCsrfProtection } from '@/lib/security/csrf';
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 
-export async function POST(request: Request) {
+type JsonRecord = Record<string, unknown>;
+
+type ConversationMessage = {
+  role: string;
+  content: string;
+};
+
+const putPayloadSchema = z.object({
+  sessionId: z.string().min(1),
+  conversation: z.unknown().optional(),
+});
+
+const postPayloadSchema = z.object({
+  notes: z.string().max(1200).optional().default(''),
+  selectedDoctor: z.unknown(),
+  output: z.unknown().optional(),
+});
+
+const normalizeConversationMessages = (conversation: unknown): ConversationMessage[] => {
+  if (!Array.isArray(conversation)) {
+    return [];
+  }
+
+  return conversation
+    .map((item) => {
+      if (!item || typeof item !== 'object') {
+        return null;
+      }
+
+      const row = item as JsonRecord;
+      const role = typeof row.role === 'string' ? row.role : '';
+      const content = typeof row.content === 'string' ? row.content.trim() : '';
+
+      if (!role || !content) {
+        return null;
+      }
+
+      return { role, content };
+    })
+    .filter((message): message is ConversationMessage => Boolean(message));
+};
+
+const buildBasicReport = (messageCount: number): string => {
+  return `Consultation completed with ${messageCount} transcript messages recorded.`;
+};
+
+const buildProReport = (conversation: ConversationMessage[], notes: string | null): string => {
+  const userMessages = conversation.filter((message) => message.role === 'user');
+  const assistantMessages = conversation.filter((message) => message.role === 'assistant');
+
+  const symptoms = userMessages.slice(0, 3).map((message) => `- ${message.content}`);
+  const guidance = assistantMessages.slice(-3).map((message) => `- ${message.content}`);
+
+  return [
+    'Comprehensive Consultation Report',
+    '',
+    'Primary Notes',
+    notes?.trim() ? `- ${notes.trim()}` : '- No initial notes provided.',
+    '',
+    'Symptoms Discussed',
+    ...(symptoms.length > 0 ? symptoms : ['- No user symptom transcript captured.']),
+    '',
+    'Clinical Guidance Shared',
+    ...(guidance.length > 0 ? guidance : ['- No assistant guidance transcript captured.']),
+    '',
+    'Follow-up Recommendation',
+    '- Continue with in-person clinical review if symptoms worsen or persist.',
+  ].join('\n');
+};
+
+const resolveSelectedDoctor = (selectedDoctor: unknown) => {
+  if (!selectedDoctor || typeof selectedDoctor !== 'object') {
+    return null;
+  }
+
+  const input = selectedDoctor as JsonRecord as unknown as {
+    id?: number;
+    specialist?:
+      | {
+          name?: unknown;
+        }
+      | string;
+  };
+
+  if (typeof input.id === 'number') {
+    const byId = AIDoctorAgents.find((doctor) => doctor.id === input.id);
+    if (byId) {
+      return byId;
+    }
+  }
+
+  if (typeof input.specialist === 'string') {
+    const specialistKey = input.specialist.toLowerCase();
+    return (
+      AIDoctorAgents.find((doctor) => doctor.specialist.toLowerCase() === specialistKey) ?? null
+    );
+  }
+
+  return null;
+};
+
+const putHandler = async (request: Request) => {
   try {
-    const session = await auth();
-    const sessionIdUser = session?.user?.id;
+    const csrfErrorResponse = enforceCsrfProtection(request);
+    if (csrfErrorResponse) {
+      return csrfErrorResponse;
+    }
 
-    if (!sessionIdUser) {
-      console.warn('[session-chat] unauthenticated request');
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
       return NextResponse.json({ error: 'User not authenticated.' }, { status: 401 });
     }
 
-    const userRecord = await prisma.user.findUnique({
-      where: { id: sessionIdUser },
-      select: { id: true, credit: true, plan: true }
-    });
-
-    if (!userRecord) {
-      return NextResponse.json({ error: 'User record not found.' }, { status: 404 });
+    const parsedPayload = putPayloadSchema.safeParse(await request.json());
+    if (!parsedPayload.success) {
+      return NextResponse.json(
+        { error: 'Invalid request payload.', issues: parsedPayload.error.issues },
+        { status: 400 }
+      );
     }
 
-    if (userRecord.plan === 'free' && userRecord.credit <= 0) {
-      return NextResponse.json({ error: 'You have exhausted your free trials. Please purchase a plan to continue.' }, { status: 403 });
+    const { sessionId, conversation } = parsedPayload.data;
+
+    if (!sessionId) {
+      return NextResponse.json({ error: 'Session ID is required.' }, { status: 400 });
     }
 
-    const { notes, selectedDoctor, output } = await request.json();
-    console.debug('[session-chat] incoming body', {
-      notesPreview: notes?.slice?.(0, 200),
-      selectedDoctor,
-      hasOutput: !!output,
+    const chatSession = await prisma.chatSession.findFirst({
+      where: {
+        sessionId,
+        userId,
+      },
+      select: {
+        sessionId: true,
+        notes: true,
+      },
     });
-    
-    let result: any;
+
+    if (!chatSession) {
+      return NextResponse.json({ error: 'Chat session not found.' }, { status: 404 });
+    }
+
+    const entitlement = await getEntitlementSnapshot(userId);
+    const normalizedConversation = normalizeConversationMessages(conversation);
+
+    let reportText: string | null = null;
+    if (normalizedConversation.length > 0) {
+      if (entitlement.plan === 'PRO') {
+        reportText = buildProReport(normalizedConversation, chatSession.notes);
+      } else if (entitlement.plan === 'BASIC') {
+        reportText = buildBasicReport(normalizedConversation.length);
+      }
+    }
+
+    const updatedSession = await prisma.chatSession.update({
+      where: { sessionId },
+      data: {
+        conversation: normalizedConversation,
+        report: reportText,
+      },
+    });
+
+    return NextResponse.json(updatedSession, { status: 200 });
+  } catch (error: any) {
+    console.error('[session-chat] Failed to update chat session:', error);
+    return NextResponse.json(
+      { error: error.message || 'Failed to update chat session.' },
+      { status: 500 }
+    );
+  }
+};
+
+const postHandler = async (request: Request) => {
+  try {
+    const csrfErrorResponse = enforceCsrfProtection(request);
+    if (csrfErrorResponse) {
+      return csrfErrorResponse;
+    }
+
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      return NextResponse.json({ error: 'User not authenticated.' }, { status: 401 });
+    }
+
+    const parsedPayload = postPayloadSchema.safeParse(await request.json());
+    if (!parsedPayload.success) {
+      return NextResponse.json(
+        { error: 'Invalid request payload.', issues: parsedPayload.error.issues },
+        { status: 400 }
+      );
+    }
+
+    const { notes, selectedDoctor, output } = parsedPayload.data;
+    const canonicalDoctor = resolveSelectedDoctor(selectedDoctor);
+
+    if (!canonicalDoctor) {
+      return NextResponse.json(
+        { error: 'Selected doctor is invalid. Please choose a doctor again.' },
+        { status: 400 }
+      );
+    }
+
     try {
-      result = await prisma.$transaction(async (tx) => {
-        // Decrease credit if on free plan
-        if (userRecord.plan !== 'pro' && userRecord.plan !== 'premium' && userRecord.plan !== 'basic') {
-           await tx.user.update({
-             where: { id: sessionIdUser },
-             data: { credit: { decrement: 1 } }
-           });
-        }
-        
-        return await tx.chatSession.create({
-          data: {
-            userId: sessionIdUser,
-            sessionId: crypto.randomUUID(),
-            notes,
-            selectedDoctor,
-            conversation: {
-              input: notes,
-              output,
-            },
-            report: null,
-          },
-        });
+      const access = await checkConsultationAccess(userId);
+      if (access.status === 'DENIED') {
+        return NextResponse.json(
+          { error: access.reason ?? 'Consultation access denied.', code: 'CONSULTATION_DENIED' },
+          { status: 403 }
+        );
+      }
+
+      await consumeConsultationCredit(userId, {
+        requiresPaidPlan: Boolean(canonicalDoctor.subscriptionRequired),
       });
-    } catch (dbErr) {
-      console.error('[session-chat] transaction failed:', dbErr);
+
+      const result = await prisma.chatSession.create({
+        data: {
+          userId,
+          sessionId: crypto.randomUUID(),
+          notes,
+          selectedDoctor: canonicalDoctor as any,
+          conversation: {
+            input: notes,
+            output: output as any,
+          } as any,
+          report: null,
+        },
+      });
+
+      return NextResponse.json(
+        {
+          ...result,
+          premiumAccessPending: access.status === 'PREMIUM_PENDING',
+        },
+        { status: 200 }
+      );
+    } catch (error) {
+      if (error instanceof EntitlementError) {
+        return NextResponse.json(
+          { error: error.message, code: error.code },
+          { status: error.statusCode }
+        );
+      }
+
+      console.error('[session-chat] Failed to create chat session:', error);
       return NextResponse.json({ error: 'Database write failed.' }, { status: 500 });
     }
-
-    return NextResponse.json(result, { status: 200 });
   } catch (error: any) {
     console.error('[session-chat] Failed to create chat session:', error);
-    return NextResponse.json({ error: error.message || 'Failed to create chat session.' }, { status: 500 });
+    return NextResponse.json(
+      { error: error.message || 'Failed to create chat session.' },
+      { status: 500 }
+    );
   }
-}
+};
+
+export const PUT = withApiRequestAudit(async (request) => putHandler(request));
+export const POST = withApiRequestAudit(async (request) => postHandler(request));

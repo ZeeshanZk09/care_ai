@@ -13,7 +13,6 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { AIDoctorAgents } from '@/lib/data/list';
 import { findGibrishInNotes, keywordMatchStrict } from '@/lib/utils/note';
-import { useSession } from 'next-auth/react';
 import { ArrowRight, Loader, Plus, RotateCcw } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -131,8 +130,6 @@ export function DialogBody({
 }>) {
   const [selectedDoctorId, setSelectedDoctorId] = useState<number | null>(null);
   const [historyOfNotes, setHistoryOfNotes] = useState<string[]>([]);
-  const { data: session } = useSession();
-  const user = session?.user;
   const router = useRouter();
   useEffect(() => {
     const storedNotes = localStorage.getItem('consultation_notes');
@@ -144,11 +141,6 @@ export function DialogBody({
 
   const handleSubmit = async (e: any) => {
     e.preventDefault();
-
-    if (!user?.id) {
-      toast.error('User not authenticated.');
-      return;
-    }
 
     const gibberishCheck = findGibrishInNotes(note);
     if (!gibberishCheck.success) {
@@ -181,9 +173,10 @@ export function DialogBody({
       toast.success('Doctor suggestions received!');
       if (!response.ok) {
         setLoading(false);
-        const error = await response.text();
-        console.error('Error response:', error);
-        toast.error(error);
+        const errorBody = await response.json().catch(() => null);
+        const message = errorBody?.error || 'Failed to fetch doctor suggestions.';
+        console.error('Error response:', message);
+        toast.error(message);
         return;
       }
 
@@ -203,10 +196,6 @@ export function DialogBody({
 
   const onStartConsultation = async () => {
     try {
-      if (!user?.id) {
-        toast.error('User not authenticated.');
-        return;
-      }
       setLoading(true);
       const response = await fetch('/api/session-chat', {
         method: 'POST',
@@ -219,9 +208,10 @@ export function DialogBody({
       });
       if (!response.ok) {
         setLoading(false);
-        const error = await response.text();
-        console.error('Error starting consultation:', error);
-        toast.error('Failed to start consultation. Please try again.');
+        const errorBody = await response.json().catch(() => null);
+        const message = errorBody?.error || 'Failed to start consultation. Please try again.';
+        console.error('Error starting consultation:', message);
+        toast.error(message);
         return;
       }
       const result = await response.json();
@@ -242,7 +232,7 @@ export function DialogBody({
         <DialogTitle>Add Basic Details</DialogTitle>
         <DialogDescription asChild>
           <div className='overflow-y-hidden p-2'>
-            {!doctors ? (
+            {doctors === undefined ? (
               <div>
                 <div className='flex max-sm:flex-col justify-between gap-4 w-full'>
                   <h2>Add Syptoms or Any other Details</h2>
@@ -400,7 +390,7 @@ export function Tooltip({
         value='i'
       />
       {tooltipVisible && (
-        <div className=' absolute top-10 right-2 bg-white border border-gray-300 p-2 rounded-lg shadow-lg z-10 max-w-[12rem]'>
+        <div className=' absolute top-10 right-2 bg-white border border-gray-300 p-2 rounded-lg shadow-lg z-10 max-w-48'>
           <h4 className='font-bold mb-1'>{specialist}</h4>
           <p className='text-left text-sm text-gray-700'>{description}</p>
         </div>

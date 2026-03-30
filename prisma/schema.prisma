@@ -5,45 +5,96 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-    provider = "prisma-client"
-    output   = "../src/lib/generated/prisma"
+  provider = "prisma-client"
+  output   = "../src/lib/generated/prisma"
 }
 
 datasource db {
-    provider = "postgresql"
+  provider = "postgresql"
 }
 
+enum PlanTier {
+  FREE
+  BASIC
+  PRO
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  RESTRICTED
+  BLOCKED
+}
+
+enum ConsultationStatus {
+  SUCCESS
+  DENIED
+}
+
+enum SubscriptionStatus {
+  INCOMPLETE
+  INCOMPLETE_EXPIRED
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  UNPAID
+  PAUSED
+}
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String    @unique
-  emailVerified DateTime?
-  image         String?
-  age           Int?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  credit        Int       @default(10)
-  plan          String    @default("free")
+  id                     String    @id @default(cuid())
+  name                   String?
+  email                  String    @unique
+  emailVerified          DateTime?
+  password               String?
+  image                  String?
+  age                    Int?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+  lastActiveAt           DateTime?
+  credit                 Int       @default(10)
+  planTier               PlanTier  @default(FREE) @map("plan")
+  role                   UserRole  @default(USER)
+  status                 UserStatus @default(ACTIVE)
+  consultationsUsed      Int       @default(0)
+  consultationsResetAt   DateTime?
+  premiumAccessGrantedAt DateTime?
+  restrictionReason      String?
+  restrictionEndsAt      DateTime?
+  stripeCustomerId       String?   @unique
 
-  accounts      Account[]
-  sessions      Session[]
-  chatSessions  ChatSession[]
+  accounts              Account[]
+  sessions              Session[]
+  chatSessions          ChatSession[]
+  subscriptions         Subscription[]
+  usageRecords          PlanUsage[]
+  payments              Payment[]
+  invoices              BillingInvoice[]
+  consultations         Consultation[]
+  auditLogs             AuditLog[]
+  adminActionsPerformed AdminAction[] @relation("AdminActor")
+  adminActionsReceived  AdminAction[] @relation("AdminTarget")
+  riskSnapshots         RiskSnapshot[] @relation("RiskGeneratedBy")
 }
 
 model Account {
-  id                 String  @id @default(cuid())
-  userId             String
-  type               String
-  provider           String
-  providerAccountId  String
-  refresh_token      String?  @db.Text
-  access_token       String?  @db.Text
-  expires_at         Int?
-  token_type         String?
-  scope              String?
-  id_token           String?  @db.Text
-  session_state      String?
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -66,7 +117,16 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
-model ChatSession{
+model PasswordResetToken {
+  id      String   @id @default(cuid())
+  email   String
+  token   String   @unique
+  expires DateTime
+
+  @@unique([email, token])
+}
+
+model ChatSession {
   id             String   @id @default(uuid())
   sessionId      String   @unique
   userId         String
@@ -76,4 +136,163 @@ model ChatSession{
   report         String?
   createdBy      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt      DateTime @default(now())
+}
+
+model Plan {
+  id               String   @id @default(cuid())
+  tier             PlanTier @unique
+  name             String
+  monthlyPriceCents Int
+  consultationsLimit Int?
+  isLifetimeLimit  Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  subscriptions Subscription[]
+}
+
+model Subscription {
+  id                 String             @id @default(cuid())
+  userId             String
+  planTier           PlanTier           @map("plan")
+  status             SubscriptionStatus
+  customerId         String             @map("stripeCustomerId")
+  subscriptionId     String             @unique @map("stripeSubscriptionId")
+  priceId            String             @map("stripePriceId")
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  cancelAtPeriodEnd  Boolean            @default(false)
+  canceledAt         DateTime?
+  metadata           Json?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan Plan @relation(fields: [planTier], references: [tier])
+
+  @@index([userId, status])
+  @@map("BillingSubscription")
+}
+
+model PlanUsage {
+  id                String   @id @default(cuid())
+  userId            String
+  periodKey         String
+  consultationsUsed Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, periodKey])
+  @@index([userId])
+}
+
+model Payment {
+  id             String   @id @default(cuid())
+  userId         String
+  subscriptionId String?
+  stripeInvoiceId String?
+  stripeEventId  String   @unique
+  amount         Int
+  currency       String
+  status         String
+  metadata       Json?
+  createdAt      DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([subscriptionId])
+  @@index([stripeInvoiceId])
+}
+
+model BillingInvoice {
+  id                   String   @id @default(cuid())
+  userId               String
+  stripeInvoiceId      String   @unique
+  stripeSubscriptionId String?
+  amountPaid           Int
+  currency             String
+  status               String
+  hostedInvoiceUrl     String?
+  invoicePdf           String?
+  periodStart          DateTime?
+  periodEnd            DateTime?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model Consultation {
+  id           String             @id @default(cuid())
+  userId       String
+  chatSessionId String?
+  sessionId    String?
+  planTier     PlanTier
+  status       ConsultationStatus @default(SUCCESS)
+  denialReason String?
+  createdAt    DateTime           @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  ipAddress String?
+  userAgent String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([action, createdAt])
+}
+
+model AdminAction {
+  id          String   @id @default(cuid())
+  adminUserId String
+  targetUserId String
+  actionType  String
+  reason      String?
+  ipAddress   String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  adminUser  User @relation("AdminActor", fields: [adminUserId], references: [id], onDelete: Cascade)
+  targetUser User @relation("AdminTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
+
+  @@index([adminUserId, createdAt])
+  @@index([targetUserId, createdAt])
+  @@index([actionType, createdAt])
+}
+
+model RiskSnapshot {
+  id            String   @id @default(cuid())
+  generatedById String
+  riskScore     Int
+  risks         Json
+  suggestions   Json
+  snapshot      Json
+  createdAt     DateTime @default(now())
+
+  generatedBy User @relation("RiskGeneratedBy", fields: [generatedById], references: [id], onDelete: Cascade)
+
+  @@index([generatedById, createdAt])
+  @@index([createdAt])
+}
+
+model StripeWebhookEvent {
+  id        String   @id
+  type      String
+  createdAt DateTime @default(now())
 }

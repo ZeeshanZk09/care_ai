@@ -1,12 +1,29 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
 import Vapi from '@vapi-ai/web';
-import { JsonValue } from '@/lib/generated/prisma/internal/prismaNamespace';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
+import { Phone, PhoneOff } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Phone, PhoneOff } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
+import type { JsonValue } from '@/lib/generated/prisma/internal/prismaNamespace';
+
+type TranscriptMessage = {
+  role: string;
+  content: string;
+};
+
+type DoctorSelection = Partial<{
+  voiceId: string;
+  specialist: string;
+  image: string;
+  gender: 'male' | 'female';
+}>;
+
+type VoiceConfig = {
+  provider: '11labs';
+  voiceId: string;
+};
 
 interface VapiWidgetProps {
   apiKey: string;
@@ -35,25 +52,21 @@ export default function MedicalCallInterface({
   const [currentRole, setCurrentRole] = useState<'user' | 'assistant' | null>('user');
   const [liveTranscript, setLiveTranscript] = useState('');
   const [micPermissionDenied, setMicPermissionDenied] = useState(false);
-  const [messages, setMessages] = useState<
-    {
-      role: string;
-      content: string;
-    }[]
-  >([]);
+  const [messages, setMessages] = useState<TranscriptMessage[]>([]);
   const [mounted, setMounted] = useState(false);
   const endRef = useRef<HTMLDivElement | null>(null);
+  const messagesRef = useRef<TranscriptMessage[]>([]);
 
-  const doctorObj = agent.selectedDoctor as any;
+  const doctorObj = (agent.selectedDoctor ?? {}) as DoctorSelection;
 
   // Retrieve the original voiceId from the selectedDoctor object (like 'Abeo', 'Valentina', etc.)
-  const doctorVoiceId = doctorObj?.voiceId;
+  const doctorVoiceId = doctorObj.voiceId ?? '';
 
   // Let's map your doctor list `voiceId` names directly to actual valid Vapi-supported voices
   // Here we use realistic Cartesia or 11labs voices that map closely to your doctors:
-  const getVoiceFromDoctorId = (voiceName: string, gender: string) => {
+  const getVoiceFromDoctorId = (voiceName: string, gender?: DoctorSelection['gender']) => {
     // If you already set realistic IDs in your dashboard assistant, we just override with these valid ones:
-    const voiceMapping: Record<string, any> = {
+    const voiceMapping: Record<string, VoiceConfig> = {
       // Male List
       Abeo: { provider: '11labs', voiceId: 'TxGEqnHWrfWFTfGW9XjX' }, // Josh
       Arjun: { provider: '11labs', voiceId: 'pNInz6obpgDQGcFmaJgB' }, // Adam
@@ -81,7 +94,7 @@ export default function MedicalCallInterface({
       Petra: { provider: '11labs', voiceId: 't0jbNlBVZ17f02VDIeMI' }, // Jessie
     };
 
-    if (voiceMapping[voiceName]) {
+    if (voiceName && voiceMapping[voiceName]) {
       return voiceMapping[voiceName];
     }
 
@@ -94,7 +107,7 @@ export default function MedicalCallInterface({
 
   const selectedVoice = getVoiceFromDoctorId(doctorVoiceId, doctorObj?.gender);
 
-  const overrides = {
+  const overrides: Record<string, unknown> = {
     firstMessage: `Hello, I am ${doctorObj?.voiceId || 'your AI medical assistant'}. How can I help you today?`,
     voice: selectedVoice,
     // name: 'AI Medical Doctor Voice Agent',
@@ -119,9 +132,27 @@ export default function MedicalCallInterface({
     // },
   };
 
+  const persistConversation = useCallback(
+    (conversation: TranscriptMessage[]) => {
+      void fetch('/api/session-chat', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: agent.sessionId,
+          conversation,
+        }),
+      }).catch((error) => console.error('Failed to save transcript', error));
+    },
+    [agent.sessionId]
+  );
+
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   useEffect(() => {
     const vapiInstance = new Vapi(apiKey);
@@ -137,6 +168,8 @@ export default function MedicalCallInterface({
       console.log('Call ended');
       setIsConnected(false);
       setIsSpeaking(false);
+
+      persistConversation(messagesRef.current);
     });
 
     vapiInstance.on('speech-start', () => {
@@ -155,7 +188,7 @@ export default function MedicalCallInterface({
       if (message.type === 'transcript') {
         const { role, transcript, transcriptType } = message;
 
-        if (transcriptType == 'partial') {
+        if (transcriptType === 'partial') {
           setLiveTranscript(transcript);
           setCurrentRole(role);
         } else if (transcriptType === 'final') {
@@ -183,25 +216,25 @@ export default function MedicalCallInterface({
         } else {
           console.error('Vapi error:', String(error));
         }
-      } catch (e) {
-        console.error('Vapi error (could not serialize):', error);
+      } catch (_error) {
+        console.error('Vapi error (could not serialize):', _error);
       }
     });
 
     return () => {
       vapiInstance?.stop();
     };
-  }, [apiKey]);
+  }, [apiKey, persistConversation]);
 
   // Keep the messages view scrolled to the latest message
   useEffect(() => {
     if (!endRef.current) return;
     try {
       endRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    } catch (e) {
+    } catch (_error) {
       // ignore
     }
-  }, [messages, liveTranscript, isSpeaking]);
+  });
 
   if (!mounted) return null;
 
@@ -209,20 +242,20 @@ export default function MedicalCallInterface({
     if (!vapi) return;
 
     // Ensure the browser supports audio input and request microphone permission
-    if (
-      typeof navigator !== 'undefined' &&
-      navigator.mediaDevices &&
-      navigator.mediaDevices.getUserMedia
-    ) {
-      navigator.mediaDevices
+    const mediaDevices = typeof navigator === 'undefined' ? undefined : navigator.mediaDevices;
+
+    if (mediaDevices?.getUserMedia) {
+      mediaDevices
         .getUserMedia({ audio: true })
         .then((stream) => {
           // Close the initial stream so Daily can acquire it smoothly without conflict
-          stream.getTracks().forEach((track) => track.stop());
-          vapi.start(assistantId, overrides as any);
+          stream.getTracks().forEach((track) => {
+            track.stop();
+          });
+          vapi.start(assistantId, overrides);
         })
-        .catch((err) => {
-          console.error('Microphone access denied or unavailable:', err);
+        .catch((error) => {
+          console.error('Microphone access denied or unavailable:', error);
           // Do not auto-fallback to starting without audio. Let the user choose.
           setMicPermissionDenied(true);
         });
@@ -238,29 +271,33 @@ export default function MedicalCallInterface({
   const startCallWithoutMic = () => {
     if (!vapi) return;
 
-    navigator.mediaDevices
-      .getUserMedia({
-        audio: {
-          echoCancellation: false,
-          noiseSuppression: false,
-          autoGainControl: false,
-        },
-      })
-      .then((stream) => {
-        stream.getTracks().forEach((track) => track.stop());
-      })
-      .catch((e) => {
-        console.warn('Mic access warned or denied, proceeding anyway', e);
-      });
+    if (navigator.mediaDevices?.getUserMedia) {
+      void navigator.mediaDevices
+        .getUserMedia({
+          audio: {
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false,
+          },
+        })
+        .then((stream) => {
+          stream.getTracks().forEach((track) => {
+            track.stop();
+          });
+        })
+        .catch((error) => {
+          console.warn('Mic access warned or denied, proceeding anyway', error);
+        });
+    }
 
     try {
       // small delay to allow Vapi to be ready
       setTimeout(() => {
-        vapi.start(assistantId, overrides as any);
+        vapi.start(assistantId, overrides);
       }, 100);
       setMicPermissionDenied(false);
-    } catch (e) {
-      console.error('Failed to start Vapi without audio:', e);
+    } catch (error) {
+      console.error('Failed to start Vapi without audio:', error);
     }
   };
 
@@ -270,8 +307,8 @@ export default function MedicalCallInterface({
     }
   };
 
-  const initials = (agent.selectedDoctor as any)?.voiceId
-    ? (agent.selectedDoctor as any).voiceId
+  const initials = doctorObj.voiceId
+    ? doctorObj.voiceId
         .split(' ')
         .map((word: string) => word[0])
         .join('')
@@ -305,15 +342,15 @@ export default function MedicalCallInterface({
         <CardHeader className='pb-2'>
           <div className='flex flex-col text-center items-center justify-center gap-4'>
             <Avatar className='size-20 border-2 border-primary/10'>
-              <AvatarImage src={(agent?.selectedDoctor as any)?.image || '/doctors/default.png'} />
+              <AvatarImage src={doctorObj.image || '/doctors/default.png'} />
               <AvatarFallback className='bg-primary/10 text-primary'>{initials}</AvatarFallback>
             </Avatar>
             <div className='space-y-1'>
               <h2 className='text-xl font-semibold tracking-tight'>
-                {(agent?.selectedDoctor as any)?.voiceId || 'Dr. Assistant'}
+                {doctorObj.voiceId || 'Dr. Assistant'}
               </h2>
-              <Badge variant={'outline'} className='text-xs'>
-                {(agent?.selectedDoctor as any)?.specialist || 'General Physician'}
+              <Badge variant='outline' className='text-xs'>
+                {doctorObj.specialist || 'General Physician'}
               </Badge>
             </div>
           </div>
@@ -328,8 +365,11 @@ export default function MedicalCallInterface({
             {messages.length === 0 && (
               <p className='text-center text-sm text-muted-foreground'>No conversation yet...</p>
             )}
-            {messages?.slice(-4).map((entry, index) => (
-              <div key={index} className='text-sm italic text-muted-foreground'>
+            {messages.slice(-4).map((entry) => (
+              <div
+                key={`${entry.role}-${entry.content}`}
+                className='text-sm italic text-muted-foreground'
+              >
                 <p className='text-sm'>
                   <span
                     className={`font-mono text-xs tabular-nums ${entry.role === 'assistant' ? 'text-primary' : 'text-secondary'}`}

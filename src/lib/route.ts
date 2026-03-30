@@ -3,27 +3,27 @@
  */
 export const publicRoutes: string[] = [
   '/',
-  '/api/search',
-  '/api/recent-purchases',
-  '/api/products/bulk',
-  '/api/cart/count',
-  '/shop',
-  '/auth/sign-in',
-  '/auth/sign-up',
+  '/contact',
+  '/about',
+  '/pricing',
+  '/privacy',
+  '/cookie-policy',
+  '/account/suspended',
 ];
 /**
  * @type {string[]} privateRoutes
  */
 export const privateRoutes = ['/dashboard'];
+export const adminRoutes = ['/admin'];
 /**
  * @type {string[]} authRoutes
  */
 export const authRoutes = [
-  '/auth/sign-in',
-  '/auth/sign-in/factor-one',
-  '/auth/sign-in/reset-password',
-  '/auth/sign-up',
-  '/auth/sign-up/verify-email',
+  '/sign-in',
+  '/sign-up',
+  '/forgot-password',
+  '/reset-password',
+  '/verify-email',
   '/auth/error',
 ];
 

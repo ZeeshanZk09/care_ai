@@ -1,9 +1,8 @@
 export default function AboutPage() {
-  // const title = 'About CareAI';
   return (
     <div className='section-container'>
       <div className='max-w-3xl mx-auto'>
-        <h1 className='heading-1 text-center mb-8'>{title}</h1>
+        <h1 className='heading-1 text-center mb-8'>About CareAI</h1>
 
         <div className='prose prose-lg dark:prose-invert mx-auto'>
           <p className='text-lg text-muted-foreground mb-6'>

@@ -1,8 +1,22 @@
 import { AIDoctorAgents } from '@/lib/data/list';
+import { auth } from '@/auth';
+import { getEntitlementSnapshot } from '@/lib/billing/entitlements';
 import React from 'react';
 import DoctorAgentCard from './DoctorAgentCard';
 
-export default function DoctorAgentList() {
+export default async function DoctorAgentList() {
+  const session = await auth();
+  let currentPlan: 'FREE' | 'BASIC' | 'PRO' = 'FREE';
+
+  if (session?.user?.id) {
+    try {
+      const entitlement = await getEntitlementSnapshot(session.user.id);
+      currentPlan = entitlement.plan;
+    } catch (error) {
+      console.error('[DoctorAgentList] Failed to load entitlement snapshot:', error);
+    }
+  }
+
   return (
     <section className='px-4 mt-10'>
       <h2 className='text-3xl font-bold'>AI Specialist Doctor</h2>
@@ -19,6 +33,7 @@ export default function DoctorAgentList() {
                 specialist={specialist}
                 subscriptionRequired={subscriptionRequired}
                 voiceId={voiceId}
+                currentPlan={currentPlan}
               />
             );
           }
