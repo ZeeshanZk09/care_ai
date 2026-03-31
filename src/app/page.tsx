@@ -1,261 +1,296 @@
-import HeroSectionOne from '@/components/hero-section-demo-1';
-import { FeatureBentoGrid } from './_components/FeatureBentoGrid';
-import { UserPlus, Mic, Stethoscope, ShieldCheck, Clock, Activity } from 'lucide-react';
+import { Activity, Mic, ShieldCheck, Stethoscope, Timer } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { buildMetadata } from '@/lib/seo';
+import { buildSoftwareAppSchema } from '@/lib/structured-data';
 
-function FeaturesWrapper() {
+const homepageDescription =
+  'MediVoice AI delivers instant symptom analysis through an AI medical voice assistant for online health consultation, trusted by patients in Pakistan and worldwide.';
+
+export const metadata = buildMetadata({
+  title: 'AI Medical Voice Assistant | Instant Health Consultations',
+  titleAbsolute: true,
+  description: homepageDescription,
+  path: '/',
+  keywords: [
+    'AI medical assistant',
+    'voice health consultation',
+    'AI symptom checker',
+    'online doctor Pakistan',
+    'medical AI app',
+    'instant health consultation',
+  ],
+  type: 'website',
+});
+
+const softwareAppSchema = buildSoftwareAppSchema({
+  description: homepageDescription,
+  offers: [
+    {
+      name: 'Free Trial',
+      price: 0,
+      priceCurrency: 'USD',
+      description: '10 consultations included to start free.',
+      url: '/pricing',
+    },
+    {
+      name: 'Basic Plan',
+      price: 19,
+      priceCurrency: 'USD',
+      description: '50 consultations per month for regular care guidance.',
+      url: '/pricing',
+    },
+    {
+      name: 'Pro Plan',
+      price: 49,
+      priceCurrency: 'USD',
+      description: 'Unlimited consultations with premium model access.',
+      url: '/pricing',
+    },
+  ],
+});
+
+const features = [
+  {
+    icon: Activity,
+    title: 'AI Symptom Analysis',
+    description:
+      'Describe symptoms naturally and receive clear, contextual guidance in seconds, with follow-up prompts that improve triage quality.',
+  },
+  {
+    icon: Mic,
+    title: 'Voice Health Consultations',
+    description:
+      'Talk instead of typing. Our AI medical voice assistant keeps consultations conversational and accessible across devices.',
+  },
+  {
+    icon: Stethoscope,
+    title: 'Specialist Routing',
+    description:
+      'Move from broad symptom intake to specialist-level pathways for cardio, mental health, pediatrics, and more.',
+  },
+  {
+    icon: ShieldCheck,
+    title: 'Secure by Design',
+    description:
+      'Built for healthcare trust with encrypted transport, access controls, and a privacy-first architecture.',
+  },
+];
+
+const testimonials = [
+  {
+    name: 'Areeba H.',
+    location: 'Lahore, Pakistan',
+    quote:
+      'I got immediate guidance late at night and knew exactly what to monitor before visiting a clinic the next day.',
+  },
+  {
+    name: 'David M.',
+    location: 'Dubai, UAE',
+    quote:
+      'The voice consultation flow feels natural and much faster than filling forms while feeling unwell.',
+  },
+  {
+    name: 'Samina R.',
+    location: 'Karachi, Pakistan',
+    quote:
+      'The specialist routing helped me organize symptoms clearly before speaking with my physician.',
+  },
+];
+
+const faqPreview = [
+  'Is AI medical consultation safe?',
+  'How accurate is AI symptom checking?',
+  'Can I use this in Pakistan?',
+  'What is the difference between Basic and Pro plans?',
+];
+
+export default function HomePage() {
   return (
-    <section className='section-container py-16 md:py-24 bg-neutral-50 dark:bg-neutral-900/50'>
-      <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
-        <div className='text-center mb-16'>
-          <h2 className='text-3xl md:text-5xl font-bold tracking-tight text-slate-900 dark:text-white mb-4'>
-            Next-Generation Healthcare AI
-          </h2>
-          <p className='text-lg text-neutral-600 dark:text-neutral-400 max-w-2xl mx-auto'>
-            Experience the future of medical and therapeutic support with our highly advanced
-            voice-enabled AI agents.
+    <div className='w-full'>
+      <script type='application/ld+json' suppressHydrationWarning>
+        {JSON.stringify(softwareAppSchema)}
+      </script>
+
+      <section className='section-container grid gap-10 py-14 lg:grid-cols-2 lg:items-center'>
+        <div>
+          <p className='mb-4 inline-flex rounded-full border px-3 py-1 text-xs font-medium text-muted-foreground'>
+            Trusted by Patients in Pakistan and Worldwide
           </p>
-        </div>
-        <FeatureBentoGrid />
-      </div>
-    </section>
-  );
-}
-
-function HowItWorksSection() {
-  const steps = [
-    {
-      title: 'Sign Up for Free',
-      description:
-        'Create an account in less than a minute and instantly unlock 10 free consultations to test our platform.',
-      icon: <UserPlus className='w-8 h-8 text-blue-600 dark:text-blue-400' />,
-    },
-    {
-      title: 'Choose a Specialist',
-      description:
-        'Browse our list of AI doctors and therapists. Select the one that matches your current health concerns.',
-      icon: <Stethoscope className='w-8 h-8 text-blue-600 dark:text-blue-400' />,
-    },
-    {
-      title: 'Start Voice Consultation',
-      description:
-        'Have a natural, real-time voice conversation. The AI will listen, analyze symptoms, and offer guidance.',
-      icon: <Mic className='w-8 h-8 text-blue-600 dark:text-blue-400' />,
-    },
-  ];
-
-  return (
-    <section className='section-container py-16 md:py-24'>
-      <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
-        <div className='text-center mb-16'>
-          <h2 className='text-3xl md:text-5xl font-bold tracking-tight text-slate-900 dark:text-white mb-4'>
-            How It Works
-          </h2>
-          <p className='text-lg text-neutral-600 dark:text-neutral-400 max-w-2xl mx-auto'>
-            Get personalized health guidance in three simple steps. No waiting rooms, no complex
-            forms.
+          <h1 className='heading-1'>Your AI-Powered Medical Voice Assistant</h1>
+          <p className='mt-5 subtext'>
+            Get instant, voice-first symptom guidance, specialist routing, and online health
+            consultation support built for modern care workflows.
           </p>
-        </div>
-        <div className='grid md:grid-cols-3 gap-8 relative'>
-          {/* Connecting line for desktop */}
-          <div className='hidden md:block absolute top-[45px] left-[15%] w-[70%] h-0.5 bg-neutral-200 dark:bg-neutral-800' />
-
-          {steps.map((step, idx) => (
-            <div key={idx} className='relative z-10 flex flex-col items-center text-center'>
-              <div className='w-24 h-24 rounded-full bg-blue-50 dark:bg-blue-900/20 border-4 border-white dark:border-background flex items-center justify-center mb-6 shadow-sm'>
-                {step.icon}
-              </div>
-              <h3 className='text-xl font-bold mb-3'>{step.title}</h3>
-              <p className='text-neutral-600 dark:text-neutral-400'>{step.description}</p>
+          <div className='mt-8 flex flex-wrap gap-3'>
+            <Button asChild size='lg'>
+              <Link href='/sign-up'>Start Free Consultation</Link>
+            </Button>
+            <Button asChild size='lg' variant='outline'>
+              <Link href='/features'>Explore Features</Link>
+            </Button>
+            <Button asChild size='lg' variant='ghost'>
+              <Link href='/pricing'>View Pricing</Link>
+            </Button>
+          </div>
+          <div className='mt-8 rounded-xl border bg-muted/30 p-4'>
+            <h2 className='text-lg font-semibold'>As Featured In</h2>
+            <div className='mt-3 grid grid-cols-2 gap-3 text-sm text-muted-foreground sm:grid-cols-4'>
+              <span className='rounded-md border bg-background px-3 py-2 text-center'>
+                HealthTech Weekly
+              </span>
+              <span className='rounded-md border bg-background px-3 py-2 text-center'>
+                Digital Care Today
+              </span>
+              <span className='rounded-md border bg-background px-3 py-2 text-center'>
+                AI Pakistan
+              </span>
+              <span className='rounded-md border bg-background px-3 py-2 text-center'>
+                Telemed Global
+              </span>
             </div>
+          </div>
+        </div>
+
+        <div className='rounded-2xl border bg-linear-to-b from-slate-50 to-white p-5 shadow-sm dark:from-slate-900 dark:to-slate-950'>
+          <Image
+            src='/medical-assistance.png'
+            alt='AI medical voice consultation interface'
+            width={1000}
+            height={720}
+            priority
+            className='h-auto w-full rounded-xl object-cover'
+          />
+        </div>
+      </section>
+
+      <section className='section-container pt-4'>
+        <h2 className='heading-2'>AI Symptom Analysis</h2>
+        <p className='subtext'>
+          Capture detailed symptom narratives, detect urgency patterns, and guide users toward safer
+          next steps in under a minute.
+        </p>
+
+        <h2 className='heading-2 mt-12'>Voice Health Consultations</h2>
+        <p className='subtext'>
+          Conversational voice flows reduce friction for users who need quick support, especially in
+          mobile-first healthcare journeys.
+        </p>
+
+        <h2 className='heading-2 mt-12'>Start Free - 10 Consultations On Us</h2>
+        <p className='subtext'>
+          Launch instantly with the free trial, then scale to predictable monthly plans as your care
+          needs grow.
+        </p>
+      </section>
+
+      <section className='section-container'>
+        <h2 className='heading-2'>Feature Highlights</h2>
+        <div className='mt-8 grid gap-6 md:grid-cols-2'>
+          {features.map((feature) => (
+            <article key={feature.title} className='card-responsive p-6'>
+              <feature.icon className='size-6 text-primary' />
+              <h3 className='mt-4 text-xl font-semibold'>{feature.title}</h3>
+              <p className='mt-2 text-muted-foreground'>{feature.description}</p>
+            </article>
           ))}
         </div>
-      </div>
-    </section>
-  );
-}
+      </section>
 
-function BenefitsSection() {
-  const benefits = [
-    {
-      icon: <Clock className='w-6 h-6 text-blue-500' />,
-      title: '24/7 Availability',
-      description:
-        "Health concerns don't wait for business hours. CareAI is always ready to assist you.",
-    },
-    {
-      icon: <ShieldCheck className='w-6 h-6 text-emerald-500' />,
-      title: 'Private & Secure',
-      description:
-        'Your voice sessions are fully encrypted. We take your medical data privacy seriously.',
-    },
-    {
-      icon: <Activity className='w-6 h-6 text-rose-500' />,
-      title: 'Evidence-Based',
-      description:
-        'Our agents are trained on extensive medical literature to provide accurate, helpful guidance.',
-    },
-  ];
-
-  return (
-    <section className='section-container py-16 md:py-24 bg-blue-900 text-white rounded-3xl mx-4 sm:mx-6 lg:mx-8 my-8'>
-      <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
-        <div className='grid lg:grid-cols-2 gap-12 items-center'>
-          <div>
-            <h2 className='text-3xl md:text-5xl font-bold tracking-tight mb-6'>
-              Why choose CareAI?
-            </h2>
-            <p className='text-blue-100 text-lg mb-8 max-w-lg'>
-              We are revolutionizing telehealth by minimizing wait times and maximizing
-              accessibility, providing you with preliminary care and peace of mind when you need it
-              most.
+      <section className='section-container'>
+        <h2 className='heading-2'>Pricing Preview</h2>
+        <div className='mt-8 grid gap-6 md:grid-cols-3'>
+          <article className='card-responsive p-6'>
+            <h3 className='text-xl font-semibold'>Free Trial</h3>
+            <p className='mt-2 text-3xl font-bold'>$0</p>
+            <p className='mt-2 text-muted-foreground'>10 consultations to evaluate the platform.</p>
+          </article>
+          <article className='card-responsive p-6'>
+            <h3 className='text-xl font-semibold'>Basic</h3>
+            <p className='mt-2 text-3xl font-bold'>$19/mo</p>
+            <p className='mt-2 text-muted-foreground'>
+              50 consultations per month with specialist routing.
             </p>
-            <div className='space-y-6'>
-              {benefits.map((benefit, idx) => (
-                <div key={idx} className='flex gap-4'>
-                  <div className='flex-shrink-0 w-12 h-12 rounded-full bg-white/10 flex items-center justify-center'>
-                    {benefit.icon}
-                  </div>
-                  <div>
-                    <h4 className='text-xl font-semibold mb-1'>{benefit.title}</h4>
-                    <p className='text-blue-200'>{benefit.description}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className='relative'>
-            <div className='aspect-square rounded-2xl overflow-hidden shadow-2xl border-4 border-white/10 bg-white/5 flex items-center justify-center p-8'>
-              {/* Fallback visual if no graphic available */}
-              <div className='relative w-full h-full border border-white/20 rounded-full flex items-center justify-center'>
-                <div className='absolute inset-0 bg-blue-500/20 blur-3xl rounded-full animate-pulse' />
-                <Mic className='w-32 h-32 text-blue-300 opacity-80' />
-              </div>
-            </div>
-          </div>
+          </article>
+          <article className='card-responsive p-6'>
+            <h3 className='text-xl font-semibold'>Pro</h3>
+            <p className='mt-2 text-3xl font-bold'>$49/mo</p>
+            <p className='mt-2 text-muted-foreground'>
+              Unlimited consultations and premium AI models.
+            </p>
+          </article>
         </div>
-      </div>
-    </section>
-  );
-}
-
-function TestimonialsSection() {
-  const testimonials = [
-    {
-      quote:
-        'The response time is incredible. I woke up feeling terrible at 3 AM and the AI doctor helped me figure out my next steps immediately.',
-      name: 'Sarah Jenkins',
-      title: 'Patient',
-    },
-    {
-      quote:
-        " CareAI's empathetic listening model makes you feel heard. It accurately assessed my symptoms and advised me to see a specialist.",
-      name: 'Michael Chen',
-      title: 'Beta Tester',
-    },
-    {
-      quote:
-        'Having 10 free trials allowed my family to test it out. Now we use our premium plan whenever we have minor health concerns.',
-      name: 'Emma Rodriguez',
-      title: 'Premium Subscriber',
-    },
-  ];
-
-  return (
-    <section className='section-container py-16 md:py-24'>
-      <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
-        <div className='text-center mb-16'>
-          <h2 className='text-3xl md:text-5xl font-bold tracking-tight text-slate-900 dark:text-white mb-4'>
-            Trusted by Users
-          </h2>
-          <p className='text-lg text-neutral-600 dark:text-neutral-400 max-w-2xl mx-auto'>
-            See how CareAI is making a difference in people's health journeys.
-          </p>
+        <div className='mt-6'>
+          <Button asChild>
+            <Link href='/pricing'>Compare Full Plans</Link>
+          </Button>
         </div>
-        <div className='grid md:grid-cols-3 gap-8'>
-          {testimonials.map((test, idx) => (
-            <Card
-              key={idx}
-              className='bg-neutral-50 dark:bg-neutral-900 border-none shadow-sm h-full flex flex-col justify-between'
+      </section>
+
+      <section className='section-container'>
+        <h2 className='heading-2'>Testimonials</h2>
+        <div className='mt-8 grid gap-6 md:grid-cols-3'>
+          {testimonials.map((item) => (
+            <article
+              key={item.name}
+              className='card-responsive p-6'
+              itemScope
+              itemType='https://schema.org/Review'
             >
-              <CardContent className='pt-8 pb-6 px-6'>
-                <div className='flex gap-1 text-yellow-400 mb-6'>
-                  {[...Array(5)].map((_, i) => (
-                    <svg key={i} className='w-5 h-5 fill-current' viewBox='0 0 20 20'>
-                      <path d='M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z' />
-                    </svg>
-                  ))}
-                </div>
-                <p className='text-lg italic text-neutral-700 dark:text-neutral-300 mb-6'>
-                  &quot;{test.quote}&quot;
-                </p>
-                <div className='flex items-center gap-4 mt-auto'>
-                  <Avatar>
-                    <AvatarFallback>
-                      {test.name
-                        .split(' ')
-                        .map((n) => n[0])
-                        .join('')}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <h4 className='font-semibold text-sm'>{test.name}</h4>
-                    <p className='text-xs text-neutral-500'>{test.title}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+              <p className='italic text-muted-foreground' itemProp='reviewBody'>
+                &quot;{item.quote}&quot;
+              </p>
+              <p className='mt-4 font-semibold' itemProp='author'>
+                {item.name}
+              </p>
+              <p className='text-sm text-muted-foreground'>{item.location}</p>
+            </article>
           ))}
         </div>
-      </div>
-    </section>
-  );
-}
+      </section>
 
-function CTASection() {
-  return (
-    <section className='border-t border-neutral-200 dark:border-neutral-800 bg-white dark:bg-background'>
-      <div className='max-w-5xl mx-auto px-4 py-20 text-center'>
-        <h2 className='text-3xl md:text-5xl font-bold tracking-tight text-slate-900 dark:text-white mb-6'>
-          Ready to take control of your health?
-        </h2>
-        <p className='text-lg text-neutral-600 dark:text-neutral-400 mb-10 max-w-2xl mx-auto'>
-          Join CareAI today and get 10 free consultations to experience the immediate availability
-          and empathy of our AI medical voice agents.
-        </p>
-        <div className='flex flex-col sm:flex-row gap-4 justify-center'>
-          <Button size='lg' className='w-full sm:w-auto text-lg h-14 px-8' asChild>
-            <Link href='/sign-up'>Start Free Trial</Link>
-          </Button>
-          <Button
-            size='lg'
-            variant='outline'
-            className='w-full sm:w-auto text-lg h-14 px-8'
-            asChild
-          >
-            <Link href='/agents'>Browse Agents</Link>
-          </Button>
+      <section className='section-container'>
+        <h2 className='heading-2'>FAQ Preview</h2>
+        <div className='mt-6 rounded-xl border p-6'>
+          <ul className='space-y-3'>
+            {faqPreview.map((question) => (
+              <li key={question} className='flex items-start gap-2 text-muted-foreground'>
+                <Timer className='mt-0.5 size-4 text-primary' />
+                <span>{question}</span>
+              </li>
+            ))}
+          </ul>
+          <div className='mt-6'>
+            <Button asChild variant='outline'>
+              <Link href='/faq'>Read All FAQs</Link>
+            </Button>
+          </div>
         </div>
-        <p className='mt-6 text-sm text-neutral-500'>
-          No credit card required for the trial. Cancel anytime.
-        </p>
-      </div>
-    </section>
-  );
-}
+      </section>
 
-export default function Home() {
-  return (
-    <div className='flex flex-col w-full overflow-hidden'>
-      <HeroSectionOne />
-      <FeaturesWrapper />
-      <HowItWorksSection />
-      <BenefitsSection />
-      <TestimonialsSection />
-      <CTASection />
+      <section className='section-container pt-0'>
+        <h2 className='heading-2'>Explore More</h2>
+        <p className='subtext'>
+          Learn about{' '}
+          <Link href='/features' className='underline'>
+            features
+          </Link>
+          , compare{' '}
+          <Link href='/pricing' className='underline'>
+            pricing
+          </Link>
+          , read the{' '}
+          <Link href='/blog' className='underline'>
+            blog
+          </Link>
+          , and meet the team on the{' '}
+          <Link href='/about' className='underline'>
+            about page
+          </Link>
+          .
+        </p>
+      </section>
     </div>
   );
 }

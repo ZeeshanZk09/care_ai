@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { type PlanTier } from '@/lib/billing/plans';
+import type { PlanTier } from '@/lib/billing/plans';
 import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';

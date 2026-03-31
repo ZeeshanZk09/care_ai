@@ -1,5 +1,5 @@
 'use client';
-import { useState, FormEvent } from 'react';
+import { type FormEvent, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,8 +17,9 @@ export default function ForgotPasswordPage() {
     try {
       await forgotPassword(email);
       toast.success('If an account with that email exists, we sent a password reset link.');
-    } catch (err: any) {
-      toast.error(err.message || 'Something went wrong. Try again.');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Something went wrong. Try again.';
+      toast.error(message);
     } finally {
       setLoading(false);
     }

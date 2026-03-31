@@ -1,6 +1,14 @@
 import { auth } from '@/auth';
+import { buildMetadata } from '@/lib/seo';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+
+export const metadata = buildMetadata({
+  title: 'Admin Panel',
+  description: 'Administrative interface for MediVoice AI.',
+  path: '/admin',
+  noIndex: true,
+});
 
 const navItems = [
   { href: '/admin/users', label: 'Users' },

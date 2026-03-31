@@ -1,4 +1,12 @@
 import Link from 'next/link';
+import { buildMetadata } from '@/lib/seo';
+
+export const metadata = buildMetadata({
+  title: 'Account Suspended',
+  description: 'Your account is suspended. Contact support for help restoring access.',
+  path: '/account/suspended',
+  noIndex: true,
+});
 
 const getSuspendedMessage = (reason: string | undefined) => {
   if (reason === 'blocked') {

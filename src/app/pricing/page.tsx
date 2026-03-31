@@ -1,13 +1,34 @@
 import { auth } from '@/auth';
+import { Button } from '@/components/ui/button';
 import { Check } from 'lucide-react';
+import Link from 'next/link';
 import { getEntitlementSnapshot } from '@/lib/billing/entitlements';
-import { type PlanTier } from '@/lib/billing/plans';
+import type { PlanTier } from '@/lib/billing/plans';
+import { buildMetadata } from '@/lib/seo';
+import { buildOfferSchema } from '@/lib/structured-data';
 import PlanActionButton from './_components/PlanActionButton';
+
+const pricingDescription =
+  'Choose affordable AI health consultation plans with free trial access, 50 consultations per month on Basic, and unlimited Pro support with Pakistan-friendly pricing.';
+
+export const metadata = buildMetadata({
+  title: 'Pricing Plans | Free, Basic & Pro Medical AI Consultation',
+  description: pricingDescription,
+  path: '/pricing',
+  keywords: [
+    'AI medical consultation pricing',
+    'health AI subscription',
+    'medical chatbot plans Pakistan',
+    'online doctor subscription',
+  ],
+  type: 'website',
+});
 
 const plans: Array<{
   code: PlanTier;
   name: string;
-  price: string;
+  monthlyPrice: number;
+  priceLabel: string;
   description: string;
   features: string[];
   buttonText: string;
@@ -16,13 +37,14 @@ const plans: Array<{
   {
     code: 'FREE',
     name: 'Free Trial',
-    price: '$0',
+    monthlyPrice: 0,
+    priceLabel: '$0',
     description: 'Perfect to try out our AI medical assistant.',
     features: [
-      '10 Free Consultations (one-time)',
+      '10 free consultations (one-time)',
       'Basic symptom analysis',
-      'Standard AI Models',
-      'Email Support',
+      'Standard AI models',
+      'Email support',
     ],
     buttonText: 'Get Started Free',
     popular: false,
@@ -30,14 +52,15 @@ const plans: Array<{
   {
     code: 'BASIC',
     name: 'Basic Plan',
-    price: '$19/mo',
+    monthlyPrice: 19,
+    priceLabel: '$19/mo',
     description: 'For individuals needing regular health guidance.',
     features: [
-      '50 Consultations per month',
+      '50 consultations per month',
       'Advanced symptom analysis',
-      'Faster AI Models',
-      'Specialist Routing',
-      'Priority Support',
+      'Faster AI models',
+      'Specialist routing',
+      'Priority support',
     ],
     buttonText: 'Subscribe Basic',
     popular: true,
@@ -45,19 +68,49 @@ const plans: Array<{
   {
     code: 'PRO',
     name: 'Pro Plan',
-    price: '$49/mo',
+    monthlyPrice: 49,
+    priceLabel: '$49/mo',
     description: 'Unlimited peace of mind for you and your family.',
     features: [
-      'Unlimited Consultations',
+      'Unlimited consultations',
       'Comprehensive health reports',
-      'Premium AI Models (Highest Accuracy)',
+      'Premium AI models (highest accuracy)',
       'Direct specialist routing',
-      '24/7 Priority Support',
+      '24/7 priority support',
     ],
     buttonText: 'Subscribe Pro',
     popular: false,
   },
 ];
+
+const pricingQuestions = [
+  {
+    q: 'What happens after I pay?',
+    a: 'Your account upgrades immediately, and billing details are available in your dashboard billing section.',
+  },
+  {
+    q: 'Can I cancel my plan anytime?',
+    a: 'Yes. You can cancel at any time and keep access until your current billing period ends.',
+  },
+  {
+    q: 'Do you offer a free trial?',
+    a: 'Yes. Every new account includes 10 free consultations before you need a paid plan.',
+  },
+  {
+    q: 'Which plan is best for families?',
+    a: 'Pro is ideal for households that need unlimited consultations and premium model access.',
+  },
+];
+
+const offerSchema = buildOfferSchema(
+  plans.map((plan) => ({
+    name: plan.name,
+    price: plan.monthlyPrice,
+    priceCurrency: 'USD',
+    description: `${plan.description} Includes: ${plan.features.join(', ')}.`,
+    url: '/pricing',
+  }))
+);
 
 export default async function PricingPage() {
   const session = await auth();
@@ -75,39 +128,43 @@ export default async function PricingPage() {
 
   return (
     <div className='section-container'>
-      <div className='text-center mb-16'>
-        <h1 className='heading-1'>Simple, Transparent Pricing</h1>
+      <script type='application/ld+json' suppressHydrationWarning>
+        {JSON.stringify(offerSchema)}
+      </script>
+
+      <div className='text-center'>
+        <h1 className='heading-1'>Simple, Transparent Pricing for AI Medical Consultations</h1>
         <p className='subtext mx-auto mt-4'>
-          Choose the right plan for your healthcare needs. Every new user gets 10 free consultations
-          to experience the power of CareAI.
+          Compare flexible plans for affordable AI health consultation workflows, from free trial
+          onboarding to unlimited Pro support.
         </p>
       </div>
 
-      <div className='grid-cards'>
+      <div className='mt-12 grid-cards'>
         {plans.map((plan) => (
-          <div
+          <article
             key={plan.code}
             className={`card-responsive relative flex flex-col p-8 ${plan.popular ? 'border-primary shadow-lg ring-1 ring-primary' : ''}`}
           >
             {plan.popular && (
-              <span className='absolute -top-4 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-sm font-semibold py-1 px-3 rounded-full'>
+              <span className='absolute -top-4 left-1/2 -translate-x-1/2 rounded-full bg-primary px-3 py-1 text-sm font-semibold text-primary-foreground'>
                 Most Popular
               </span>
             )}
 
             <div className='mb-6'>
-              <h3 className='heading-3 mb-2'>{plan.name}</h3>
+              <h2 className='heading-3 mb-2'>{plan.name}</h2>
               <p className='text-muted-foreground'>{plan.description}</p>
             </div>
 
             <div className='mb-6'>
-              <span className='text-5xl font-bold text-foreground'>{plan.price}</span>
+              <span className='text-5xl font-bold text-foreground'>{plan.priceLabel}</span>
             </div>
 
             <ul className='flex-1 space-y-4 mb-8'>
               {plan.features.map((feature) => (
                 <li key={feature} className='flex items-start gap-3'>
-                  <Check className='h-5 w-5 text-primary shrink-0' />
+                  <Check className='h-5 w-5 shrink-0 text-primary' />
                   <span className='text-foreground'>{feature}</span>
                 </li>
               ))}
@@ -119,9 +176,90 @@ export default async function PricingPage() {
               isAuthenticated={Boolean(userId)}
               defaultLabel={plan.buttonText}
             />
-          </div>
+          </article>
         ))}
       </div>
+
+      <section className='mt-14 overflow-x-auto'>
+        <h2 className='text-2xl font-semibold'>Plan Comparison</h2>
+        <table className='mt-4 min-w-full rounded-xl border text-sm'>
+          <thead className='bg-muted/50'>
+            <tr>
+              <th className='border px-4 py-3 text-left'>Feature</th>
+              <th className='border px-4 py-3 text-left'>Free</th>
+              <th className='border px-4 py-3 text-left'>Basic</th>
+              <th className='border px-4 py-3 text-left'>Pro</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td className='border px-4 py-3'>Consultations</td>
+              <td className='border px-4 py-3'>10 one-time</td>
+              <td className='border px-4 py-3'>50 per month</td>
+              <td className='border px-4 py-3'>Unlimited</td>
+            </tr>
+            <tr>
+              <td className='border px-4 py-3'>Specialist routing</td>
+              <td className='border px-4 py-3'>Limited</td>
+              <td className='border px-4 py-3'>Included</td>
+              <td className='border px-4 py-3'>Priority</td>
+            </tr>
+            <tr>
+              <td className='border px-4 py-3'>Model quality</td>
+              <td className='border px-4 py-3'>Standard</td>
+              <td className='border px-4 py-3'>Faster</td>
+              <td className='border px-4 py-3'>Premium</td>
+            </tr>
+            <tr>
+              <td className='border px-4 py-3'>Support</td>
+              <td className='border px-4 py-3'>Email</td>
+              <td className='border px-4 py-3'>Priority</td>
+              <td className='border px-4 py-3'>24/7 priority</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section className='mt-14 rounded-xl border p-6'>
+        <h2 className='text-2xl font-semibold'>Billing Questions</h2>
+        <div className='mt-5 space-y-3'>
+          {pricingQuestions.map((item) => (
+            <details key={item.q} className='rounded-lg border p-4'>
+              <summary className='cursor-pointer font-medium'>{item.q}</summary>
+              <p className='mt-2 text-muted-foreground'>{item.a}</p>
+            </details>
+          ))}
+        </div>
+        <p className='mt-5 text-sm text-muted-foreground'>
+          Need more detail? Visit our{' '}
+          <Link href='/faq' className='underline'>
+            FAQ
+          </Link>{' '}
+          or contact{' '}
+          <Link href='/contact' className='underline'>
+            support
+          </Link>
+          .
+        </p>
+      </section>
+
+      <section className='mt-14 rounded-xl border bg-muted/40 p-8 text-center'>
+        <h2 className='text-2xl font-semibold'>Not sure which plan? Start with the Free Trial.</h2>
+        <p className='mx-auto mt-3 max-w-2xl text-muted-foreground'>
+          Begin with 10 free consultations and upgrade only when you need higher monthly capacity.
+        </p>
+        <div className='mt-6 flex flex-wrap justify-center gap-3'>
+          <Button asChild>
+            <Link href='/sign-up'>Start Free Consultation</Link>
+          </Button>
+          <Button asChild variant='outline'>
+            <Link href='/faq'>Read FAQ</Link>
+          </Button>
+          <Button asChild variant='ghost'>
+            <Link href='/contact'>Contact Sales</Link>
+          </Button>
+        </div>
+      </section>
     </div>
   );
 }

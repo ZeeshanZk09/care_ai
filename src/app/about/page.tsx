@@ -1,6 +1,24 @@
+import { buildMetadata } from '@/lib/seo';
+import { buildOrganizationSchema } from '@/lib/structured-data';
+
+export const metadata = buildMetadata({
+  title: 'About Us | Trusted AI Medical Assistant Platform',
+  description:
+    'Learn why we built MediVoice AI and how we deliver secure, accessible healthcare guidance through AI-powered voice consultations.',
+  path: '/about',
+  keywords: ['about MediVoice AI', 'AI health startup Pakistan', 'medical AI team'],
+  type: 'website',
+});
+
 export default function AboutPage() {
+  const organizationSchema = buildOrganizationSchema();
+
   return (
     <div className='section-container'>
+      <script type='application/ld+json' suppressHydrationWarning>
+        {JSON.stringify(organizationSchema)}
+      </script>
+
       <div className='max-w-3xl mx-auto'>
         <h1 className='heading-1 text-center mb-8'>About CareAI</h1>
 
