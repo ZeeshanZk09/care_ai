@@ -1,6 +1,8 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import { PlanTier, UserStatus } from '@/lib/generated/prisma/client';
+import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -8,6 +10,17 @@ import { toast } from 'sonner';
 type UserActionButtonsProps = {
   userId: string;
   disabledPremiumActivation: boolean;
+  user: {
+    email: string;
+    id: string;
+    status: UserStatus;
+    name: string | null;
+    createdAt: Date;
+    lastActiveAt: Date | null;
+    planTier: PlanTier;
+    consultationsUsed: number;
+    premiumAccessGrantedAt: Date | null;
+  };
 };
 
 type UserAction = 'RESTRICT' | 'UNBLOCK' | 'BLOCK' | 'REVOKE_SESSIONS' | 'ACTIVATE_PREMIUM_MODELS';
@@ -23,9 +36,19 @@ const actionLabels: Record<UserAction, string> = {
 export default function UserActionButtons({
   userId,
   disabledPremiumActivation,
+  user,
 }: Readonly<UserActionButtonsProps>) {
   const [loadingAction, setLoadingAction] = useState<UserAction | null>(null);
   const router = useRouter();
+  const currentUser = useSession().data?.user;
+  const isCurrentUser = currentUser?.id === userId;
+  const superAdmins = [
+    'mzeeshankhan0988@gmail.com',
+    'zebotix@gmail.com',
+    'apnacampus.it@gmail.com',
+    'dr5269139@gmail.com',
+  ];
+  const isSuperAdmins = superAdmins.includes(user.email || '');
 
   const runAction = async (action: UserAction) => {
     let reason: string | undefined;
@@ -78,38 +101,46 @@ export default function UserActionButtons({
 
   return (
     <div className='flex flex-wrap gap-2'>
-      <Button
-        variant='outline'
-        size='sm'
-        disabled={loadingAction !== null}
-        onClick={() => runAction('RESTRICT')}
-      >
-        {loadingAction === 'RESTRICT' ? 'Working...' : actionLabels.RESTRICT}
-      </Button>
-      <Button
-        variant='outline'
-        size='sm'
-        disabled={loadingAction !== null}
-        onClick={() => runAction('UNBLOCK')}
-      >
-        {loadingAction === 'UNBLOCK' ? 'Working...' : actionLabels.UNBLOCK}
-      </Button>
-      <Button
-        variant='outline'
-        size='sm'
-        disabled={loadingAction !== null}
-        onClick={() => runAction('BLOCK')}
-      >
-        {loadingAction === 'BLOCK' ? 'Working...' : actionLabels.BLOCK}
-      </Button>
-      <Button
-        variant='outline'
-        size='sm'
-        disabled={loadingAction !== null}
-        onClick={() => runAction('REVOKE_SESSIONS')}
-      >
-        {loadingAction === 'REVOKE_SESSIONS' ? 'Working...' : actionLabels.REVOKE_SESSIONS}
-      </Button>
+      {!isCurrentUser && !isSuperAdmins && (
+        <Button
+          variant='outline'
+          size='sm'
+          disabled={loadingAction !== null}
+          onClick={() => runAction('RESTRICT')}
+        >
+          {loadingAction === 'RESTRICT' ? 'Working...' : actionLabels.RESTRICT}
+        </Button>
+      )}
+      {!isCurrentUser && !isSuperAdmins && (
+        <Button
+          variant='outline'
+          size='sm'
+          disabled={loadingAction !== null}
+          onClick={() => runAction('UNBLOCK')}
+        >
+          {loadingAction === 'UNBLOCK' ? 'Working...' : actionLabels.UNBLOCK}
+        </Button>
+      )}
+      {!isCurrentUser && !isSuperAdmins && (
+        <Button
+          variant='outline'
+          size='sm'
+          disabled={loadingAction !== null}
+          onClick={() => runAction('BLOCK')}
+        >
+          {loadingAction === 'BLOCK' ? 'Working...' : actionLabels.BLOCK}
+        </Button>
+      )}
+      {!isCurrentUser && !isSuperAdmins && (
+        <Button
+          variant='outline'
+          size='sm'
+          disabled={loadingAction !== null}
+          onClick={() => runAction('REVOKE_SESSIONS')}
+        >
+          {loadingAction === 'REVOKE_SESSIONS' ? 'Working...' : actionLabels.REVOKE_SESSIONS}
+        </Button>
+      )}
       <Button
         variant='outline'
         size='sm'

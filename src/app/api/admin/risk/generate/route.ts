@@ -9,6 +9,16 @@ import { z } from 'zod';
 
 const ONE_HOUR_MS = 60 * 60 * 1000;
 const generateRiskPayloadSchema = z.looseObject({});
+const RISK_REPORT_MODELS = [
+  'meta-llama/llama-3.3-70b-instruct:free',
+  'qwen/qwen3-next-80b-a3b-instruct:free',
+  'nvidia/nemotron-3-super-120b-a12b:free',
+  'stepfun/step-3.5-flash:free',
+  'z-ai/glm-4.5-air:free',
+  'arcee-ai/trinity-large-preview:free',
+  'minimax/minimax-m2.5:free',
+  'qwen/qwen3-coder:free',
+];
 
 const monthKey = (date: Date) => {
   return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
@@ -48,6 +58,68 @@ const parseRiskResponse = (raw: string) => {
     risks,
     suggestions,
   };
+};
+
+const getErrorMessage = (error: unknown) => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (typeof error === 'string') {
+    return error;
+  }
+
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return 'Unknown model error';
+  }
+};
+
+const generateRiskReportFromModels = async (snapshot: unknown) => {
+  const modelErrors: string[] = [];
+
+  for (const model of RISK_REPORT_MODELS) {
+    try {
+      const aiResponse = await openai.chat.completions.create({
+        model,
+        temperature: 0.2,
+        max_tokens: 1200,
+        messages: [
+          {
+            role: 'system',
+            content:
+              'You are a SaaS risk assessor. Return strict JSON with keys riskScore (0-100), risks (array of {title,severity,detail}), suggestions (array of strings). Severity must be one of LOW, MEDIUM, HIGH, CRITICAL.',
+          },
+          {
+            role: 'user',
+            content: `Analyze this SaaS health snapshot and return a prioritized risk report:\n${JSON.stringify(snapshot, null, 2)}`,
+          },
+        ],
+      });
+
+      const rawContent = aiResponse.choices?.[0]?.message?.content ?? '{}';
+      const parsed = parseRiskResponse(rawContent);
+
+      return {
+        parsed,
+        model,
+      };
+    } catch (error) {
+      const errorMessage = getErrorMessage(error);
+      const isRateLimited =
+        errorMessage.toLowerCase().includes('rate limit') || errorMessage.includes('429');
+
+      console.warn(
+        `[risk-report] Model ${model} failed${isRateLimited ? ' (rate-limited)' : ''}:`,
+        errorMessage
+      );
+
+      modelErrors.push(`${model}: ${errorMessage}`);
+    }
+  }
+
+  throw new Error(`All risk-report models failed. ${modelErrors.join(' | ')}`);
 };
 
 const postHandler = async (request: Request) => {
@@ -230,25 +302,7 @@ const postHandler = async (request: Request) => {
       },
     };
 
-    const aiResponse = await openai.chat.completions.create({
-      model: 'meta-llama/llama-3.3-70b-instruct:free',
-      temperature: 0.2,
-      max_tokens: 1200,
-      messages: [
-        {
-          role: 'system',
-          content:
-            'You are a SaaS risk assessor. Return strict JSON with keys riskScore (0-100), risks (array of {title,severity,detail}), suggestions (array of strings). Severity must be one of LOW, MEDIUM, HIGH, CRITICAL.',
-        },
-        {
-          role: 'user',
-          content: `Analyze this SaaS health snapshot and return a prioritized risk report:\n${JSON.stringify(snapshot, null, 2)}`,
-        },
-      ],
-    });
-
-    const rawContent = aiResponse.choices?.[0]?.message?.content ?? '{}';
-    const parsed = parseRiskResponse(rawContent);
+    const { parsed, model } = await generateRiskReportFromModels(snapshot);
 
     const saved = await prisma.riskSnapshot.create({
       data: {
@@ -268,6 +322,7 @@ const postHandler = async (request: Request) => {
       metadata: {
         riskSnapshotId: saved.id,
         riskScore: parsed.riskScore,
+        model,
       },
     });
 
@@ -279,6 +334,7 @@ const postHandler = async (request: Request) => {
         risks: parsed.risks,
         suggestions: parsed.suggestions,
         snapshot,
+        model,
         createdAt: saved.createdAt,
       },
     });

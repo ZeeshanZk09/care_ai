@@ -185,6 +185,7 @@ export default async function AdminUsersPage({
                 <td className='px-2 py-3'>
                   <UserActionButtons
                     userId={user.id}
+                    user={user}
                     disabledPremiumActivation={
                       user.planTier === 'FREE' || user.premiumAccessGrantedAt !== null
                     }
