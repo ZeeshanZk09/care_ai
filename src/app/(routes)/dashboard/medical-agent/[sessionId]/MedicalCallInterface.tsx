@@ -52,6 +52,7 @@ export default function MedicalCallInterface({
   const [currentRole, setCurrentRole] = useState<'user' | 'assistant' | null>('user');
   const [liveTranscript, setLiveTranscript] = useState('');
   const [micPermissionDenied, setMicPermissionDenied] = useState(false);
+  const [connectionIssue, setConnectionIssue] = useState<string | null>(null);
   const [messages, setMessages] = useState<TranscriptMessage[]>([]);
   const [mounted, setMounted] = useState(false);
   const endRef = useRef<HTMLDivElement | null>(null);
@@ -112,6 +113,53 @@ export default function MedicalCallInterface({
     voice: selectedVoice,
   };
 
+  const toErrorDetails = (error: unknown): string => {
+    if (error instanceof Error) {
+      return error.stack ?? error.message;
+    }
+
+    if (typeof error === 'string') {
+      return error;
+    }
+
+    if (error && typeof error === 'object') {
+      try {
+        return JSON.stringify(error, (_key, value) => {
+          if (value instanceof Error) {
+            return {
+              name: value.name,
+              message: value.message,
+              stack: value.stack,
+            };
+          }
+          return value;
+        });
+      } catch (error) {
+        console.log(error);
+        return '[object:unserializable]';
+      }
+    }
+
+    return '[unknown-error]';
+  };
+
+  const startVapiCall = async (instance: Vapi) => {
+    setConnectionIssue(null);
+
+    try {
+      await instance.start(assistantId, overrides);
+    } catch (error) {
+      const details = toErrorDetails(error);
+      const hostname = typeof window === 'undefined' ? 'unknown-host' : window.location.hostname;
+      const secureContext = typeof window === 'undefined' ? false : window.isSecureContext;
+
+      console.error('Vapi start() rejected:', details);
+      setConnectionIssue(
+        `Could not join call. Host: ${hostname}. Secure context: ${String(secureContext)}. Details: ${details}`
+      );
+    }
+  };
+
   const persistConversation = useCallback(
     (conversation: TranscriptMessage[]) => {
       void fetch('/api/session-chat', {
@@ -142,6 +190,7 @@ export default function MedicalCallInterface({
     vapiInstance.on('call-start', () => {
       console.log('Call started');
       setIsConnected(true);
+      setConnectionIssue(null);
     });
 
     vapiInstance.on('call-end', () => {
@@ -188,13 +237,20 @@ export default function MedicalCallInterface({
 
     vapiInstance.on('error', (error) => {
       try {
-        if (error instanceof Error) {
-          console.error('Vapi error:', error.stack ?? error.message);
-        } else if (error && typeof error === 'object') {
-          const serialized = JSON.stringify(error, Object.getOwnPropertyNames(error));
-          console.error('Vapi error (object):', serialized);
-        } else {
-          console.error('Vapi error:', String(error));
+        const details = toErrorDetails(error);
+        console.error('Vapi error:', details);
+
+        const detailsText = details.toLowerCase();
+        if (
+          detailsText.includes('daily-call-join-error') ||
+          detailsText.includes('connection-error') ||
+          detailsText.includes('start-method-error')
+        ) {
+          const hostname =
+            typeof window === 'undefined' ? 'unknown-host' : window.location.hostname;
+          setConnectionIssue(
+            `Daily join failed on ${hostname}. Check Vapi allowed origins, key/assistant pairing, and production CSP.`
+          );
         }
       } catch (_error) {
         console.error('Vapi error (could not serialize):', _error);
@@ -232,7 +288,7 @@ export default function MedicalCallInterface({
           stream.getTracks().forEach((track) => {
             track.stop();
           });
-          vapi.start(assistantId, overrides);
+          void startVapiCall(vapi);
         })
         .catch((error) => {
           console.error('Microphone access denied or unavailable:', error);
@@ -273,7 +329,7 @@ export default function MedicalCallInterface({
     try {
       // small delay to allow Vapi to be ready
       setTimeout(() => {
-        vapi.start(assistantId, overrides);
+        void startVapiCall(vapi);
       }, 100);
       setMicPermissionDenied(false);
     } catch (error) {
@@ -376,6 +432,7 @@ export default function MedicalCallInterface({
       </div>
 
       <CardFooter className='flex flex-col gap-3 pt-2'>
+        {connectionIssue ? <p className='text-sm text-red-600'>{connectionIssue}</p> : null}
         {micPermissionDenied ? (
           <div className='space-y-2'>
             <p className='text-sm text-yellow-700'>
