@@ -48,6 +48,7 @@ const nextConfig: NextConfig = {
       "'self'",
       "'unsafe-inline'",
       "'unsafe-eval'",
+      'blob:',
       'https://js.stripe.com',
       'https://*.daily.co',
     ].join(' ');
@@ -76,6 +77,7 @@ const nextConfig: NextConfig = {
       "media-src 'self' blob: https: mediastream:",
       "object-src 'none'",
       `script-src ${scriptSrc}`,
+      `script-src-elem ${scriptSrc}`,
       "style-src 'self' 'unsafe-inline'",
       "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://*.daily.co",
       `connect-src ${connectSrc}`,
