@@ -1,7 +1,6 @@
 import { getMedicalVoiceAgentBySessionId } from '@/lib/actions/medical-voice-agent';
 import MedicalCallInterface from './MedicalCallInterface';
 import { notFound } from 'next/navigation';
-import { vapi } from '../../../../../../config/vapi';
 
 export default async function MedicalVoiceAgent({
   params,
@@ -17,8 +16,8 @@ export default async function MedicalVoiceAgent({
     return notFound();
   }
 
-  const assistantId = process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID!;
-  const apiKey = process.env.NEXT_PUBLIC_VAPI_PUBLIC_KEY!;
+  const assistantId = process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID;
+  const apiKey = process.env.NEXT_PUBLIC_VAPI_PUBLIC_KEY;
 
   if (!assistantId || !apiKey) {
     return (

@@ -110,26 +110,6 @@ export default function MedicalCallInterface({
   const overrides: Record<string, unknown> = {
     firstMessage: `Hello, I am ${doctorObj?.voiceId || 'your AI medical assistant'}. How can I help you today?`,
     voice: selectedVoice,
-    // name: 'AI Medical Doctor Voice Agent',
-    // firstMessage: `Hello, I am ${doctorObj?.voiceId || 'your AI medical assistant'}. How can I help you today?`,
-    // transcriber: {
-    //   provider: 'assembly-ai',
-    //   language: 'en',
-    // },
-    // voice: {
-    //   provider: 'playht',
-    //   voiceId: (agent.selectedDoctor as any)?.voiceId || 'Joanna',
-    // },
-    // model: {
-    //   provider: 'openai',
-    //   model: 'gpt-4',
-    //   message: [
-    //     {
-    //       role: 'system',
-    //       content: (agent.selectedDoctor as any).agentPrompt,
-    //     },
-    //   ],
-    // },
   };
 
   const persistConversation = useCallback(
