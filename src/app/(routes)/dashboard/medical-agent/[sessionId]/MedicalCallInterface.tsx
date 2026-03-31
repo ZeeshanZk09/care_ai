@@ -160,6 +160,40 @@ export default function MedicalCallInterface({
     }
   };
 
+  const logSecurityDiagnostics = async () => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    try {
+      const response = await fetch(window.location.href, {
+        method: 'HEAD',
+        cache: 'no-store',
+      });
+
+      const csp = response.headers.get('content-security-policy') ?? '';
+      const permissionsPolicy = response.headers.get('permissions-policy') ?? '';
+
+      const hasUnsafeEval = csp.includes("'unsafe-eval'");
+      const hasDailyScript =
+        csp.includes('https://*.daily.co') || csp.includes('https://c.daily.co');
+
+      console.info('Security diagnostics', {
+        url: window.location.href,
+        hasUnsafeEval,
+        hasDailyScript,
+        permissionsPolicy,
+        csp,
+      });
+
+      if (!hasUnsafeEval) {
+        console.error('CSP missing unsafe-eval; Daily bundle will fail to load in production.');
+      }
+    } catch (error) {
+      console.warn('Unable to fetch security headers for diagnostics', error);
+    }
+  };
+
   const persistConversation = useCallback(
     (conversation: TranscriptMessage[]) => {
       void fetch('/api/session-chat', {
@@ -262,6 +296,30 @@ export default function MedicalCallInterface({
     };
   }, [apiKey, persistConversation]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const handleViolation = (event: SecurityPolicyViolationEvent) => {
+      console.error('CSP violation detected', {
+        blockedURI: event.blockedURI,
+        violatedDirective: event.violatedDirective,
+        effectiveDirective: event.effectiveDirective,
+        sourceFile: event.sourceFile,
+        lineNumber: event.lineNumber,
+        columnNumber: event.columnNumber,
+        originalPolicy: event.originalPolicy,
+      });
+    };
+
+    window.addEventListener('securitypolicyviolation', handleViolation);
+
+    return () => {
+      window.removeEventListener('securitypolicyviolation', handleViolation);
+    };
+  }, []);
+
   // Keep the messages view scrolled to the latest message
   useEffect(() => {
     if (!endRef.current) return;
@@ -276,6 +334,8 @@ export default function MedicalCallInterface({
 
   const startCall = () => {
     if (!vapi) return;
+
+    void logSecurityDiagnostics();
 
     // Ensure the browser supports audio input and request microphone permission
     const mediaDevices = typeof navigator === 'undefined' ? undefined : navigator.mediaDevices;
@@ -306,6 +366,8 @@ export default function MedicalCallInterface({
 
   const startCallWithoutMic = () => {
     if (!vapi) return;
+
+    void logSecurityDiagnostics();
 
     if (navigator.mediaDevices?.getUserMedia) {
       void navigator.mediaDevices

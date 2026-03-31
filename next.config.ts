@@ -47,7 +47,7 @@ const nextConfig: NextConfig = {
     const scriptSrc = [
       "'self'",
       "'unsafe-inline'",
-      ...(isDevelopment ? ["'unsafe-eval'"] : []),
+      "'unsafe-eval'",
       'https://js.stripe.com',
       'https://*.daily.co',
     ].join(' ');
