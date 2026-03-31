@@ -44,6 +44,29 @@ export default function SignInPage() {
       <h1 className='text-2xl font-bold'>Welcome to CareAI</h1>
       <p className='text-gray-600 mb-4'>Sign in to start your consultation</p>
 
+      <div className='w-full max-w-xs sm:max-w-sm grid grid-cols-2 gap-4'>
+        <Button
+          className='max-w-3xs'
+          variant='outline'
+          onClick={() => signIn('github', { callbackUrl: '/dashboard' })}
+        >
+          GitHub
+        </Button>
+        <Button
+          className='max-w-3xs'
+          variant='outline'
+          onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
+        >
+          Google
+        </Button>
+      </div>
+
+      <div className='flex items-center gap-2 w-full max-w-xs sm:max-w-sm my-2'>
+        <div className='flex-1 h-px bg-gray-200'></div>
+        <span className='text-sm text-gray-500'>OR</span>
+        <div className='flex-1 h-px bg-gray-200'></div>
+      </div>
+
       <form
         onSubmit={handleSubmit}
         className='w-full max-w-sm flex flex-col gap-4 bg-white p-6 rounded-lg shadow-sm border'
@@ -54,6 +77,7 @@ export default function SignInPage() {
             id='email'
             type='email'
             value={email}
+            className='mt-2'
             onChange={(e) => setEmail(e.target.value)}
             required
           />
@@ -64,6 +88,7 @@ export default function SignInPage() {
             id='password'
             type='password'
             value={password}
+            className='mt-2'
             onChange={(e) => setPassword(e.target.value)}
             required
           />
@@ -80,29 +105,6 @@ export default function SignInPage() {
           {loading ? 'Signing in...' : 'Sign in'}
         </Button>
       </form>
-
-      <div className='flex items-center gap-2 w-full max-w-sm my-2'>
-        <div className='flex-1 h-px bg-gray-200'></div>
-        <span className='text-sm text-gray-500'>OR</span>
-        <div className='flex-1 h-px bg-gray-200'></div>
-      </div>
-
-      <div className='w-full max-w-sm flex flex-col gap-3'>
-        <Button
-          className='w-full'
-          variant='outline'
-          onClick={() => signIn('github', { callbackUrl: '/dashboard' })}
-        >
-          Sign in with GitHub
-        </Button>
-        <Button
-          className='w-full'
-          variant='outline'
-          onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
-        >
-          Sign in with Google
-        </Button>
-      </div>
     </div>
   );
 }

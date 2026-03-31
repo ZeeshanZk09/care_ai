@@ -3,12 +3,16 @@
  */
 export const publicRoutes: string[] = [
   '/',
-  '/contact',
-  '/about',
-  '/pricing',
   '/privacy',
   '/cookie-policy',
   '/account/suspended',
+  '/about',
+  '/features',
+  '/pricing',
+  '/faq',
+  '/blog',
+  '/contact',
+  '/terms',
 ];
 /**
  * @type {string[]} privateRoutes

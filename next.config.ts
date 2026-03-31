@@ -56,6 +56,10 @@ const nextConfig: NextConfig = {
       'https://openrouter.ai',
       'https://api.vapi.ai',
       'wss://api.vapi.ai',
+      'https://c.daily.co',
+      'https://*.daily.co',
+      'wss://*.daily.co',
+      'https://*.ingest.sentry.io',
       ...(isDevelopment
         ? ['ws://127.0.0.1:*', 'ws://localhost:*', 'http://127.0.0.1:*', 'http://localhost:*']
         : []),

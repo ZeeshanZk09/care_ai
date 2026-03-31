@@ -32,13 +32,36 @@ export default function SignUpPage() {
   };
 
   return (
-    <div className='flex flex-col items-center justify-center min-h-[60vh] gap-4 mt-8'>
-      <h1 className='text-2xl font-bold'>Create an Account</h1>
-      <p className='text-gray-600 mb-4'>Sign up to use CareAI</p>
+    <div className='flex flex-col items-center justify-center min-h-[60vh] gap-2 mt-2'>
+      <h1 className='text-3xl font-bold'>Create an Account</h1>
+      <p className='text-gray-600 mb-2'>Sign up to use CareAI</p>
+
+      <div className='w-full max-w-xs sm:max-w-sm grid grid-cols-2 gap-4'>
+        <Button
+          className='max-w-3xs'
+          variant='outline'
+          onClick={() => signIn('github', { callbackUrl: '/dashboard' })}
+        >
+          GitHub
+        </Button>
+        <Button
+          className='max-w-3xs'
+          variant='outline'
+          onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
+        >
+          Google
+        </Button>
+      </div>
+
+      <div className='flex items-center gap-2 w-full max-w-xs sm:max-w-sm my-2'>
+        <div className='flex-1 h-px bg-gray-200'></div>
+        <span className='text-sm text-gray-500'>OR</span>
+        <div className='flex-1 h-px bg-gray-200'></div>
+      </div>
 
       <form
         onSubmit={handleSubmit}
-        className='w-full max-w-sm flex flex-col gap-4 bg-white p-6 rounded-lg shadow-sm border'
+        className='w-full max-w-xs sm:max-w-sm flex flex-col gap-4 bg-white p-6 rounded-lg shadow-sm border'
       >
         <div>
           <Label htmlFor='name'>Full Name</Label>
@@ -47,6 +70,7 @@ export default function SignUpPage() {
             type='text'
             value={name}
             onChange={(e) => setName(e.target.value)}
+            className='mt-2'
             required
           />
         </div>
@@ -57,6 +81,7 @@ export default function SignUpPage() {
             type='email'
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            className='mt-2'
             required
           />
         </div>
@@ -67,6 +92,7 @@ export default function SignUpPage() {
             type='password'
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            className='mt-2'
             required
             minLength={6}
           />
@@ -81,29 +107,6 @@ export default function SignUpPage() {
           </Link>
         </div>
       </form>
-
-      <div className='flex items-center gap-2 w-full max-w-sm my-2'>
-        <div className='flex-1 h-px bg-gray-200'></div>
-        <span className='text-sm text-gray-500'>OR</span>
-        <div className='flex-1 h-px bg-gray-200'></div>
-      </div>
-
-      <div className='w-full max-w-sm flex flex-col gap-3'>
-        <Button
-          className='w-full'
-          variant='outline'
-          onClick={() => signIn('github', { callbackUrl: '/dashboard' })}
-        >
-          Sign up with GitHub
-        </Button>
-        <Button
-          className='w-full'
-          variant='outline'
-          onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
-        >
-          Sign up with Google
-        </Button>
-      </div>
     </div>
   );
 }
