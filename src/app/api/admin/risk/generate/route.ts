@@ -11,6 +11,12 @@ const ONE_HOUR_MS = 60 * 60 * 1000;
 const MRR_THRESHOLD_CENTS = 20_000;
 const generateRiskPayloadSchema = z.looseObject({});
 
+type GrowthRecommendations = {
+  seoOptimization: string[];
+  marketing: string[];
+  salesStrategies: string[];
+};
+
 const monthKey = (date: Date) => {
   return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
 };
@@ -18,6 +24,17 @@ const monthKey = (date: Date) => {
 const getMonthStartUtc = (offsetMonths = 0) => {
   const now = new Date();
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + offsetMonths, 1, 0, 0, 0, 0));
+};
+
+const parseStringArray = (value: unknown) => {
+  if (!Array.isArray(value)) {
+    return [] as string[];
+  }
+
+  return value
+    .filter((item): item is string => typeof item === 'string')
+    .map((item) => item.trim())
+    .filter(Boolean);
 };
 
 const parseRiskResponse = (raw: string) => {
@@ -29,6 +46,11 @@ const parseRiskResponse = (raw: string) => {
     riskScore?: number;
     risks?: Array<{ title?: string; severity?: string; detail?: string }>;
     suggestions?: string[];
+    growthRecommendations?: {
+      seoOptimization?: unknown;
+      marketing?: unknown;
+      salesStrategies?: unknown;
+    };
   };
 
   const riskScore = Math.max(0, Math.min(100, Number(parsed.riskScore ?? 50) || 50));
@@ -40,14 +62,24 @@ const parseRiskResponse = (raw: string) => {
       }))
     : [];
 
-  const suggestions = Array.isArray(parsed.suggestions)
-    ? parsed.suggestions.filter((item) => typeof item === 'string')
-    : [];
+  const growthRecommendations: GrowthRecommendations = {
+    seoOptimization: parseStringArray(parsed.growthRecommendations?.seoOptimization),
+    marketing: parseStringArray(parsed.growthRecommendations?.marketing),
+    salesStrategies: parseStringArray(parsed.growthRecommendations?.salesStrategies),
+  };
+
+  const suggestions = parseStringArray(parsed.suggestions);
+  const fallbackSuggestions = [
+    ...growthRecommendations.seoOptimization,
+    ...growthRecommendations.marketing,
+    ...growthRecommendations.salesStrategies,
+  ].slice(0, 8);
 
   return {
     riskScore,
     risks,
-    suggestions,
+    suggestions: suggestions.length > 0 ? suggestions : fallbackSuggestions,
+    growthRecommendations,
   };
 };
 
@@ -212,7 +244,7 @@ const postHandler = async (request: Request) => {
     const churnRate = totalUsers > 0 ? (canceledSubscriptions / totalUsers) * 100 : 0;
     const errorRate = totalAudit24h > 0 ? (recentWebhookErrors / totalAudit24h) * 100 : 0;
 
-    const snapshot = {
+    const baseSnapshot = {
       totalUsers,
       planDistribution: distribution,
       mrrCents: mrr._sum.amount ?? 0,
@@ -241,17 +273,21 @@ const postHandler = async (request: Request) => {
         {
           role: 'system',
           content:
-            'You are a SaaS risk assessor. Return strict JSON with keys riskScore (0-100), risks (array of {title,severity,detail}), suggestions (array of strings). Severity must be one of LOW, MEDIUM, HIGH, CRITICAL.',
+            'You are a SaaS risk assessor and growth strategist. Return strict JSON with keys riskScore (0-100), risks (array of {title,severity,detail}), suggestions (array of strings), growthRecommendations ({seoOptimization: string[], marketing: string[], salesStrategies: string[]}). Focus growthRecommendations on actionable ideas to increase traffic, activation, and paid conversions. Severity must be one of LOW, MEDIUM, HIGH, CRITICAL.',
         },
         {
           role: 'user',
-          content: `Analyze this SaaS health snapshot and return a prioritized risk report:\n${JSON.stringify(snapshot, null, 2)}`,
+          content: `Analyze this SaaS health snapshot and return a prioritized risk report:\n${JSON.stringify(baseSnapshot, null, 2)}`,
         },
       ],
     });
 
     const rawContent = aiResponse.choices?.[0]?.message?.content ?? '{}';
     const parsed = parseRiskResponse(rawContent);
+    const snapshot = {
+      ...baseSnapshot,
+      growthRecommendations: parsed.growthRecommendations,
+    };
 
     const saved = await prisma.riskSnapshot.create({
       data: {
@@ -281,6 +317,7 @@ const postHandler = async (request: Request) => {
         riskScore: parsed.riskScore,
         risks: parsed.risks,
         suggestions: parsed.suggestions,
+        growthRecommendations: parsed.growthRecommendations,
         snapshot,
         createdAt: saved.createdAt,
       },
