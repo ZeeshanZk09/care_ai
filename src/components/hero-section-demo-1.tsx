@@ -6,6 +6,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { signIn, signOut, useSession } from 'next-auth/react';
+import ThemeToggle from '@/components/theme-toggle';
 import { Button } from './ui/button';
 
 export default function HeroSectionOne() {
@@ -123,7 +124,8 @@ export const Navbar = () => {
         />
         <h1 className='relative -left-1 bottom-1 text-base md:text-2xl lg:text-3xl'>CareAI</h1>
       </div>
-      <div className='sm:space-x-8'>
+      <div className='flex items-center gap-3 sm:space-x-8'>
+        <ThemeToggle />
         {session?.user ? (
           <div className='flex items-center gap-4'>
             <Link

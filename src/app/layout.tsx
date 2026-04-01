@@ -6,6 +6,8 @@ import GoogleTagManager from '@/components/analytics/GoogleTagManager';
 import { Footer } from '@/components/Footer';
 import { MobileNav, Navbar } from '@/components/hero-section-demo-1';
 import CookieBanner from '@/components/marketing/CookieBanner';
+import { ThemeProvider } from '@/components/theme-provider';
+import { Toaster } from '@/components/ui/sonner';
 import { SessionProvider } from 'next-auth/react';
 import { buildMetadata, seoTitleTemplate } from '@/lib/seo';
 import {
@@ -19,7 +21,6 @@ import {
 } from '@/lib/seo.config';
 import { buildOrganizationSchema } from '@/lib/structured-data';
 import { cn } from '@/lib/utils';
-import { Toaster } from 'sonner';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans', display: 'swap' });
@@ -106,6 +107,7 @@ export default async function RootLayout({
   return (
     <html
       lang='en'
+      suppressHydrationWarning
       className={cn('font-sans', inter.variable, geistSans.variable, geistMono.variable)}
     >
       <head>
@@ -114,23 +116,25 @@ export default async function RootLayout({
         </script>
       </head>
       <body className='[&::-webkit-scrollbar]:w-1  [&::-webkit-scrollbar-track]:bg-gray-100  [&::-webkit-scrollbar-thumb]:bg-gray-300 antialiased relative flex flex-col min-h-screen'>
-        <SessionProvider session={session}>
-          <GoogleTagManager />
-          <GoogleAnalytics />
-          <Navbar />
-          <main className='flex-1'>
-            <Toaster
-              position='top-right'
-              toastOptions={{
-                className: 'bg-white text-black',
-              }}
-            />
-            {children}
-          </main>
-          <Footer />
-          <MobileNav />
-          <CookieBanner />
-        </SessionProvider>
+        <ThemeProvider
+          attribute='data-theme'
+          defaultTheme='system'
+          enableSystem
+          disableTransitionOnChange
+        >
+          <SessionProvider session={session}>
+            <GoogleTagManager />
+            <GoogleAnalytics />
+            <Navbar />
+            <main className='flex-1'>
+              <Toaster position='top-right' />
+              {children}
+            </main>
+            <Footer />
+            <MobileNav />
+            <CookieBanner />
+          </SessionProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

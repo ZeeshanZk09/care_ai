@@ -92,19 +92,19 @@ export default function DoctorAgentCard({
     <div
       id='agent-card'
       title={`${voiceId}: ${description}`}
-      className='cursor-pointer relative shadow-lg p-3 rounded-lg min-h-25 bg-white flex flex-col gap-4 items-start'
+      className='cursor-pointer relative shadow-lg p-3 rounded-lg min-h-25 bg-card flex flex-col gap-4 items-start'
     >
       <input
         type='button'
         onClick={() => setTooltipVisible(!tooltipVisible)}
-        className='lg:hidden absolute  w-6 h-6 top-6 right-6 bg-blue-500 text-white rounded-full '
+        className='lg:hidden absolute  w-6 h-6 top-6 right-6 bg-foreground text-background rounded-full '
         value='i'
       />
 
       {tooltipVisible && (
-        <div className='absolute top-12 right-2 bg-white border border-gray-300 p-2 rounded-lg shadow-lg z-10 max-w-[16rem] sm:top-4 sm:right-4'>
+        <div className='absolute top-12 right-2 bg-card border border-foreground p-2 rounded-lg shadow-lg z-10 max-w-[16rem] sm:top-4 sm:right-4'>
           <h4 className='font-bold mb-1'>{voiceId}</h4>
-          <p className='text-left text-sm text-gray-700'>{description}</p>
+          <p className='text-left text-sm text-foreground/70'>{description}</p>
         </div>
       )}
 
@@ -120,7 +120,7 @@ export default function DoctorAgentCard({
 
       <div className='flex-1'>
         <h3 className='font-bold mt-1 sm:mt-0 text-lg'>{specialist}</h3>
-        <p className='line-clamp-2 mt-2 text-sm text-gray-600 max-h-20 overflow-hidden'>
+        <p className='line-clamp-2 mt-2 text-sm text-foreground/70 max-h-20 overflow-hidden'>
           {description}
         </p>
       </div>

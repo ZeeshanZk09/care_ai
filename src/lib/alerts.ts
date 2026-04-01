@@ -1,5 +1,5 @@
-import { writeAuditLog } from '@/lib/audit';
-import { sendEmail } from '@/lib/mail';
+import { writeAuditLog } from "@/lib/audit";
+import { sendEmail } from "@/lib/mail";
 
 type AlertInput = {
   subject: string;
@@ -14,7 +14,7 @@ type ChannelDispatchResult = {
   slackDelivered: boolean;
 };
 
-const AGENT_ID = 'GPT-5.3-Codex';
+const AGENT_ID = "GPT-5.3-Codex";
 
 const parseRecipients = (value: string | undefined) => {
   if (!value) {
@@ -24,18 +24,31 @@ const parseRecipients = (value: string | undefined) => {
   return [
     ...new Set(
       value
-        .split(',')
+        .split(",")
         .map((item) => item.trim())
-        .filter(Boolean)
+        .filter(Boolean),
     ),
   ];
+};
+
+const resolveRecipients = (primary: string | undefined, fallback?: string) => {
+  const primaryRecipients = parseRecipients(primary);
+  if (primaryRecipients.length > 0) {
+    return primaryRecipients;
+  }
+
+  return parseRecipients(fallback);
 };
 
 const canSendEmail = () => {
   return Boolean(process.env.EMAIL_USER && process.env.EMAIL_PASS);
 };
 
-const buildEmailHtml = (subject: string, summary: string, metadata: Record<string, unknown>) => {
+const buildEmailHtml = (
+  subject: string,
+  summary: string,
+  metadata: Record<string, unknown>,
+) => {
   return `
     <div style="font-family: Arial, sans-serif; color: #111827; line-height: 1.5;">
       <h2 style="margin-bottom: 8px;">${subject}</h2>
@@ -49,16 +62,16 @@ const sendSlackAlert = async (
   webhookUrl: string | undefined,
   subject: string,
   summary: string,
-  metadata: Record<string, unknown>
+  metadata: Record<string, unknown>,
 ) => {
   if (!webhookUrl) {
     return false;
   }
 
   const response = await fetch(webhookUrl, {
-    method: 'POST',
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
     body: JSON.stringify({
       text: `${subject}\n${summary}\n${JSON.stringify(metadata, null, 2)}`,
@@ -76,7 +89,7 @@ const dispatchAlert = async (
   action: string,
   recipients: string[],
   slackWebhook: string | undefined,
-  input: AlertInput
+  input: AlertInput,
 ): Promise<ChannelDispatchResult> => {
   const occurredAt = new Date().toISOString();
   const metadata: Record<string, unknown> = {
@@ -99,7 +112,7 @@ const dispatchAlert = async (
           {
             templateName: action,
             metadata,
-          }
+          },
         );
         sentEmailCount += 1;
       } catch (error) {
@@ -110,7 +123,10 @@ const dispatchAlert = async (
           metadata: {
             ...metadata,
             recipient,
-            error: error instanceof Error ? error.message : 'Unknown email dispatch error',
+            error:
+              error instanceof Error
+                ? error.message
+                : "Unknown email dispatch error",
           },
         });
       }
@@ -119,7 +135,12 @@ const dispatchAlert = async (
 
   let slackDelivered = false;
   try {
-    slackDelivered = await sendSlackAlert(slackWebhook, input.subject, input.summary, metadata);
+    slackDelivered = await sendSlackAlert(
+      slackWebhook,
+      input.subject,
+      input.summary,
+      metadata,
+    );
   } catch (error) {
     await writeAuditLog({
       action: `${action}.slack_failed`,
@@ -127,7 +148,10 @@ const dispatchAlert = async (
       userAgent: input.userAgent,
       metadata: {
         ...metadata,
-        error: error instanceof Error ? error.message : 'Unknown slack dispatch error',
+        error:
+          error instanceof Error
+            ? error.message
+            : "Unknown slack dispatch error",
       },
     });
   }
@@ -153,19 +177,31 @@ const dispatchAlert = async (
 export const notifySecurityAlert = async (input: AlertInput) => {
   const recipients = parseRecipients(process.env.SECURITY_ALERT_EMAILS);
   return dispatchAlert(
-    'security.alert',
+    "security.alert",
     recipients,
     process.env.SECURITY_ALERT_SLACK_WEBHOOK_URL,
-    input
+    input,
   );
 };
 
 export const notifyRevenueAlert = async (input: AlertInput) => {
   const recipients = parseRecipients(process.env.RISK_ALERT_EMAILS);
   return dispatchAlert(
-    'revenue.alert',
+    "revenue.alert",
     recipients,
     process.env.RISK_ALERT_SLACK_WEBHOOK_URL,
-    input
+    input,
   );
+};
+
+export const notifyGrowthAlert = async (input: AlertInput) => {
+  const recipients = resolveRecipients(
+    process.env.GROWTH_ALERT_EMAILS,
+    process.env.RISK_ALERT_EMAILS,
+  );
+  const webhookUrl =
+    process.env.GROWTH_ALERT_SLACK_WEBHOOK_URL ??
+    process.env.RISK_ALERT_SLACK_WEBHOOK_URL;
+
+  return dispatchAlert("growth.alert", recipients, webhookUrl, input);
 };

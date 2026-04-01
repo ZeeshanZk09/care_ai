@@ -2,7 +2,7 @@
 
 - Generated at: 2026-04-01T10:48:00Z
 - Agent ID: GPT-5.3-Codex
-- Source risk score: 78 / 100
+- Source risk score: 85 / 100
 
 ## T1 - MRR Tracking and PRO Plan Audit
 
@@ -13,6 +13,7 @@
 - Local PRO subscription records: 0.
 - Stripe customer id on PRO user: missing.
 - Stripe provider audit: 0 subscriptions found; no active paid subscription detected.
+- Latest integrity check: paid-tier user exists without active billing subscription state.
 
 ### T1 Actions Completed
 
@@ -22,6 +23,7 @@
 - Added MRR threshold context to AI risk snapshot generation.
 - Added billing dashboard card showing current MRR vs threshold.
 - Added PRO billing audit panel with flagged-account reactivation email drafts.
+- Added billing-integrity alert path for paid-tier users missing active billing records.
 
 ### T1 Pending Confirmation
 
@@ -105,9 +107,35 @@
 - Pair survey with a 7-day CARE30 incentive and one-click upgrade CTA.
 - Add onboarding nudge after successful consultation #1 and #2 to reduce April churn.
 
+### T3 Actions Completed (Automation)
+
+- Added `consultation.started` and `consultation.completed` funnel audit events in session flow APIs.
+- Added growth automation cron (`/api/cron/growth-automation`) with dry-run default and confirmation gate.
+- Added abandoned consultation reminder batch logic and disengagement survey orchestration using existing email infrastructure.
+- Added weekly consultation-volume alerting and threshold checks in risk monitoring cron.
+
 ### T3 Pending Confirmation
 
 - No disengagement survey emails were sent automatically.
+
+## T5 - SEO, Marketing, and Sales Automation
+
+### T5 Findings
+
+- The app uses Next.js App Router with static/dynamic routes, JSON-LD schema helpers, and no external CMS.
+- Marketing infrastructure exists via email templates and `sendEmail`, with alert channels already configured.
+- Pricing page already contains plan comparison and upgrade CTAs, while conversion milestone prompts were already wired into consultation flow.
+
+### T5 Actions Completed
+
+- Added symptom-focused long-tail landing pages (`/symptoms` and `/symptoms/[slug]`) with schema markup and consultation CTAs.
+- Added FAQ topic cluster pages (`/faq/[topic]`) and wired new internal links across FAQ, features, and pricing journeys.
+- Extended sitemap generation to include symptom and FAQ topic cluster routes for crawl discovery.
+- Implemented weekly campaign topic scheduling, 7-day onboarding lifecycle nudges, and sales-retargeting automation via cron (dry-run by default, confirmation required for sends).
+
+### T5 Pending Confirmation
+
+- No campaign or onboarding emails were auto-sent; `confirmSend=true` is required for outbound dispatch.
 
 ## T4 - Login Security Hardening
 
@@ -132,6 +160,11 @@
 - 2026-04-01T10:48:00Z - Agent GPT-5.3-Codex deployed MRR monitoring and escalation automation.
 - 2026-04-01T10:48:00Z - Agent GPT-5.3-Codex implemented conversion prompts and KPI instrumentation.
 - 2026-04-01T10:48:00Z - Agent GPT-5.3-Codex implemented login hardening, alerting, and retention policy.
+- 2026-04-01T13:28:00Z - Agent GPT-5.3-Codex added growth automation cron for weekly campaigns, onboarding nudges, retarget reminders, and disengagement surveys (dry-run by default).
+- 2026-04-01T13:31:00Z - Agent GPT-5.3-Codex added weekly consultation volume alerting and paid-tier billing integrity checks in risk monitoring cron.
+- 2026-04-01T13:36:00Z - Agent GPT-5.3-Codex scaffolded symptom SEO landing pages and FAQ topic clusters with schema/internal-link updates.
+- 2026-04-01T13:42:00Z - Agent GPT-5.3-Codex added dashboard in-app plan comparison nudge with report-quality and cost-savings messaging.
+- 2026-04-01T13:46:00Z - Agent GPT-5.3-Codex instrumented consultation funnel audit events (`started`, `progress_updated`, `completed`) for drop-off diagnosis.
 
 ## Confirmation Gate Summary
 
