@@ -264,6 +264,20 @@ const executeConsultationStart = async (
     },
   });
 
+  await writeAuditLog({
+    userId,
+    action: "consultation.step_completed",
+    ipAddress: getClientIp(request.headers),
+    userAgent: getUserAgent(request.headers),
+    metadata: {
+      step: "consultation_started",
+      sessionId: result.sessionId,
+      deepLink: `/dashboard/medical-agent/${result.sessionId}`,
+      occurredAt: new Date().toISOString(),
+      agentId: AGENT_ID,
+    },
+  });
+
   return NextResponse.json(
     {
       ...result,
@@ -272,6 +286,104 @@ const executeConsultationStart = async (
     },
     { status: 200 },
   );
+};
+
+const executeConsultationUpdate = async (
+  request: Request,
+  userId: string,
+  payload: {
+    sessionId: string;
+    conversation?: unknown;
+    reportTier: "STANDARD" | "COMPREHENSIVE";
+  },
+) => {
+  const { sessionId, conversation, reportTier } = payload;
+
+  const chatSession = await prisma.chatSession.findFirst({
+    where: {
+      sessionId,
+      userId,
+    },
+    select: {
+      sessionId: true,
+      notes: true,
+    },
+  });
+
+  if (!chatSession) {
+    return NextResponse.json({ error: "Chat session not found." }, { status: 404 });
+  }
+
+  const entitlement = await getEntitlementSnapshot(userId);
+  if (reportTier === "COMPREHENSIVE") {
+    const planGate = enforcePlanGate(
+      entitlement.plan,
+      "PRO",
+      "COMPREHENSIVE_CONSULTATION_REPORT",
+    );
+
+    if (!planGate.allowed) {
+      return NextResponse.json(
+        {
+          ...planGate.payload,
+          upgradePrompt: getUpgradePromptForPlanGate(
+            planGate.payload.requiredPlan,
+            "Comprehensive consultation report",
+          ),
+        },
+        { status: planGate.status },
+      );
+    }
+  }
+
+  const normalizedConversation = normalizeConversationMessages(conversation);
+
+  let reportText: string | null = null;
+  if (normalizedConversation.length > 0) {
+    if (reportTier === "COMPREHENSIVE" && entitlement.plan === "PRO") {
+      reportText = buildProReport(normalizedConversation, chatSession.notes);
+    } else if (entitlement.plan === "BASIC") {
+      reportText = buildBasicReport(normalizedConversation.length);
+    }
+  }
+
+  const updatedSession = await prisma.chatSession.update({
+    where: { sessionId },
+    data: {
+      conversation: normalizedConversation,
+      report: reportText,
+    },
+  });
+
+  await writeAuditLog({
+    userId,
+    action: reportText ? "consultation.completed" : "consultation.progress_updated",
+    ipAddress: getClientIp(request.headers),
+    userAgent: getUserAgent(request.headers),
+    metadata: {
+      sessionId,
+      planTier: entitlement.plan,
+      messageCount: normalizedConversation.length,
+      occurredAt: new Date().toISOString(),
+      agentId: AGENT_ID,
+    },
+  });
+
+  await writeAuditLog({
+    userId,
+    action: reportText ? "consultation.step_completed" : "consultation.step_viewed",
+    ipAddress: getClientIp(request.headers),
+    userAgent: getUserAgent(request.headers),
+    metadata: {
+      step: reportText ? "consultation_completed" : "consultation_progress_saved",
+      sessionId,
+      messageCount: normalizedConversation.length,
+      occurredAt: new Date().toISOString(),
+      agentId: AGENT_ID,
+    },
+  });
+
+  return NextResponse.json(updatedSession, { status: 200 });
 };
 
 const putHandler = async (request: Request) => {
@@ -302,7 +414,7 @@ const putHandler = async (request: Request) => {
       );
     }
 
-    const { sessionId, conversation, reportTier } = parsedPayload.data;
+    const { sessionId } = parsedPayload.data;
 
     if (!sessionId) {
       return NextResponse.json(
@@ -311,82 +423,7 @@ const putHandler = async (request: Request) => {
       );
     }
 
-    const chatSession = await prisma.chatSession.findFirst({
-      where: {
-        sessionId,
-        userId,
-      },
-      select: {
-        sessionId: true,
-        notes: true,
-      },
-    });
-
-    if (!chatSession) {
-      return NextResponse.json(
-        { error: "Chat session not found." },
-        { status: 404 },
-      );
-    }
-
-    const entitlement = await getEntitlementSnapshot(userId);
-    if (reportTier === "COMPREHENSIVE") {
-      const planGate = enforcePlanGate(
-        entitlement.plan,
-        "PRO",
-        "COMPREHENSIVE_CONSULTATION_REPORT",
-      );
-
-      if (!planGate.allowed) {
-        return NextResponse.json(
-          {
-            ...planGate.payload,
-            upgradePrompt: getUpgradePromptForPlanGate(
-              planGate.payload.requiredPlan,
-              "Comprehensive consultation report",
-            ),
-          },
-          { status: planGate.status },
-        );
-      }
-    }
-
-    const normalizedConversation = normalizeConversationMessages(conversation);
-
-    let reportText: string | null = null;
-    if (normalizedConversation.length > 0) {
-      if (reportTier === "COMPREHENSIVE" && entitlement.plan === "PRO") {
-        reportText = buildProReport(normalizedConversation, chatSession.notes);
-      } else if (entitlement.plan === "BASIC") {
-        reportText = buildBasicReport(normalizedConversation.length);
-      }
-    }
-
-    const updatedSession = await prisma.chatSession.update({
-      where: { sessionId },
-      data: {
-        conversation: normalizedConversation,
-        report: reportText,
-      },
-    });
-
-    await writeAuditLog({
-      userId,
-      action: reportText
-        ? "consultation.completed"
-        : "consultation.progress_updated",
-      ipAddress: getClientIp(request.headers),
-      userAgent: getUserAgent(request.headers),
-      metadata: {
-        sessionId,
-        planTier: entitlement.plan,
-        messageCount: normalizedConversation.length,
-        occurredAt: new Date().toISOString(),
-        agentId: AGENT_ID,
-      },
-    });
-
-    return NextResponse.json(updatedSession, { status: 200 });
+    return executeConsultationUpdate(request, userId, parsedPayload.data);
   } catch (error) {
     console.error("[session-chat] Failed to update chat session:", error);
     return NextResponse.json(

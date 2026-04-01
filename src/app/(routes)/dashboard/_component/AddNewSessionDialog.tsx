@@ -170,6 +170,7 @@ export function DialogBody({
   setLoading: React.Dispatch<React.SetStateAction<boolean>>;
   setDoctors: React.Dispatch<React.SetStateAction<typeof AIDoctorAgents | undefined>>;
 }>) {
+  const [funnelId] = useState(() => crypto.randomUUID());
   const [selectedDoctorId, setSelectedDoctorId] = useState<number | null>(null);
   const [historyOfNotes, setHistoryOfNotes] = useState<string[]>([]);
   const [upgradeOfferPrompt, setUpgradeOfferPrompt] = useState<UpgradePromptPayload | null>(null);
@@ -177,13 +178,91 @@ export function DialogBody({
     null
   );
   const router = useRouter();
+
+  const trackFunnelEvent = async (payload: {
+    step:
+      | 'notes_viewed'
+      | 'notes_submitted'
+      | 'doctor_suggestions_viewed'
+      | 'doctor_selected'
+      | 'consultation_started'
+      | 'consultation_completed'
+      | 'consultation_abandoned';
+    status: 'viewed' | 'completed' | 'abandoned';
+    sessionId?: string;
+    deepLink?: string;
+    metadata?: Record<string, unknown>;
+  }) => {
+    try {
+      await fetch('/api/consultation-funnel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          funnelId,
+          ...payload,
+        }),
+      });
+    } catch (error) {
+      console.warn('[consultation-funnel] Tracking failed:', error);
+    }
+  };
+
+  const trackAbandonedProgress = () => {
+    let currentStep:
+      | 'consultation_started'
+      | 'doctor_selected'
+      | 'doctor_suggestions_viewed'
+      | 'notes_submitted'
+      | 'notes_viewed' = 'notes_viewed';
+
+    if (pendingConsultationSessionId) {
+      currentStep = 'consultation_started';
+    } else if (selectedDoctorId) {
+      currentStep = 'doctor_selected';
+    } else if (doctors && doctors.length > 0) {
+      currentStep = 'doctor_suggestions_viewed';
+    } else if (note.trim()) {
+      currentStep = 'notes_submitted';
+    }
+
+    const resumeLink = pendingConsultationSessionId
+      ? `/dashboard/medical-agent/${pendingConsultationSessionId}`
+      : '/dashboard';
+
+    void trackFunnelEvent({
+      step: 'consultation_abandoned',
+      status: 'abandoned',
+      sessionId: pendingConsultationSessionId ?? undefined,
+      deepLink: resumeLink,
+      metadata: {
+        lastKnownStep: currentStep,
+      },
+    });
+  };
+
   useEffect(() => {
     const storedNotes = localStorage.getItem('consultation_notes');
 
     if (storedNotes) {
       setHistoryOfNotes(JSON.parse(storedNotes));
     }
+
+    void trackFunnelEvent({
+      step: 'notes_viewed',
+      status: 'viewed',
+    });
   }, []);
+
+  useEffect(() => {
+    if (!selectedDoctorId) {
+      return;
+    }
+
+    void trackFunnelEvent({
+      step: 'doctor_selected',
+      status: 'completed',
+    });
+  }, [selectedDoctorId]);
 
   const handleSubmit = async (e: any) => {
     e.preventDefault();
@@ -196,9 +275,21 @@ export function DialogBody({
 
     // Quick keyword-only match: if explicit keywords are present, return those matches
     try {
+      void trackFunnelEvent({
+        step: 'notes_submitted',
+        status: 'completed',
+      });
+
       const quickMatches = keywordMatchStrict(note || '', AIDoctorAgents);
       if (quickMatches && quickMatches.length > 0) {
         setDoctors(quickMatches);
+        void trackFunnelEvent({
+          step: 'doctor_suggestions_viewed',
+          status: 'viewed',
+          metadata: {
+            source: 'keyword_match',
+          },
+        });
         return;
       }
     } catch (e) {
@@ -232,6 +323,13 @@ export function DialogBody({
       const doctors = data.data;
       console.log('Doctor Suggestions:', doctors);
       setDoctors(doctors);
+      void trackFunnelEvent({
+        step: 'doctor_suggestions_viewed',
+        status: 'viewed',
+        metadata: {
+          source: 'ai_routing',
+        },
+      });
     } catch (err) {
       console.error('Failed to parse response:', err);
       setDoctors([]);
@@ -243,6 +341,11 @@ export function DialogBody({
   const onStartConsultation = async () => {
     try {
       setLoading(true);
+      void trackFunnelEvent({
+        step: 'consultation_started',
+        status: 'viewed',
+      });
+
       const response = await fetch('/api/session-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -268,6 +371,14 @@ export function DialogBody({
       const result = await response.json();
       console.log('Consultation session created:', result);
       toast.success('Consultation started successfully!');
+
+      const deepLink = `/dashboard/medical-agent/${result.sessionId}`;
+      void trackFunnelEvent({
+        step: 'consultation_started',
+        status: 'completed',
+        sessionId: result.sessionId,
+        deepLink,
+      });
 
       const upgradePrompt = parseUpgradePrompt(result?.upgradePrompt);
       if (upgradePrompt) {
@@ -373,14 +484,28 @@ export function DialogBody({
                   Start Consultation <ArrowRight />
                 </Button>
                 <DialogClose asChild>
-                  <Button variant='outline'>Cancel</Button>
+                  <Button
+                    variant='outline'
+                    onClick={() => {
+                      trackAbandonedProgress();
+                    }}
+                  >
+                    Cancel
+                  </Button>
                 </DialogClose>
               </div>
             </div>
           ) : (
             <div className='flex gap-2'>
               <DialogClose asChild>
-                <Button variant='outline'>Cancel</Button>
+                <Button
+                  variant='outline'
+                  onClick={() => {
+                    trackAbandonedProgress();
+                  }}
+                >
+                  Cancel
+                </Button>
               </DialogClose>
               <Button
                 onClick={(e) => {

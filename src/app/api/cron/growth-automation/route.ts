@@ -7,16 +7,19 @@ import {
   disengagementSurveyTemplate,
   freeToPaidCampaignTemplate,
   freeUserOnboardingTemplate,
+  incompleteConsultationWeeklySummaryTemplate,
 } from "@/lib/email-templates";
 import { sendEmail } from "@/lib/mail";
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
 const AGENT_ID = "GPT-5.3-Codex";
-const ABANDONED_SESSION_MINUTES = 90;
+const ABANDONED_LOOKBACK_HOURS = 48;
+const ABANDONED_REMINDER_COOLDOWN_HOURS = 24;
 const MAX_WEEKLY_CAMPAIGN_EMAILS = 100;
 const MAX_ONBOARDING_EMAILS = 60;
 const MAX_RETARGET_EMAILS = 40;
+const MAX_WEEKLY_INCOMPLETE_EMAILS = 50;
 const MAX_SURVEY_EMAILS = 40;
 
 const WEEKLY_TOPIC_POOL = [
@@ -46,6 +49,14 @@ type DispatchResult = {
   sent: number;
   failed: number;
   mode: DispatchMode;
+};
+
+type AbandonedConsultationEvent = {
+  userId: string;
+  sessionId: string | null;
+  resumeUrl: string;
+  stepLabel: string | null;
+  createdAt: Date;
 };
 
 const isAuthorizedCronRequest = (request: Request) => {
@@ -137,6 +148,77 @@ const parseDispatchMode = (request: Request): DispatchMode => {
     confirmSendRaw === "1" ||
     confirmSendRaw === "yes";
   return confirmSend ? "CONFIRMED_SEND" : "DRY_RUN";
+};
+
+const toMetadataRecord = (value: unknown) => {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  return value as Record<string, unknown>;
+};
+
+const readStringFromMetadata = (
+  metadata: Record<string, unknown> | null,
+  key: string,
+) => {
+  if (!metadata) {
+    return null;
+  }
+
+  const value = metadata[key];
+  return typeof value === "string" ? value : null;
+};
+
+const resolveResumeUrl = (
+  appBaseUrl: string,
+  deepLink: string | null,
+  sessionId: string | null,
+) => {
+  if (deepLink) {
+    if (deepLink.startsWith("http")) {
+      return deepLink;
+    }
+
+    const normalizedPath = deepLink.startsWith("/") ? deepLink : `/${deepLink}`;
+    return `${appBaseUrl}${normalizedPath}`;
+  }
+
+  if (sessionId) {
+    return `${appBaseUrl}/dashboard/medical-agent/${sessionId}`;
+  }
+
+  return `${appBaseUrl}/dashboard`;
+};
+
+const resolveAbandonedEvent = (
+  event: {
+    userId: string | null;
+    metadata: unknown;
+    createdAt: Date;
+  },
+  appBaseUrl: string,
+): AbandonedConsultationEvent | null => {
+  if (!event.userId) {
+    return null;
+  }
+
+  const metadata = toMetadataRecord(event.metadata);
+
+  const sessionId = readStringFromMetadata(metadata, "sessionId");
+  const deepLink = readStringFromMetadata(metadata, "deepLink");
+  const fallbackStep = readStringFromMetadata(metadata, "step");
+  const lastKnownStep =
+    readStringFromMetadata(metadata, "lastKnownStep") ?? fallbackStep;
+  const resumeUrl = resolveResumeUrl(appBaseUrl, deepLink, sessionId);
+
+  return {
+    userId: event.userId,
+    sessionId,
+    resumeUrl,
+    stepLabel: lastKnownStep,
+    createdAt: event.createdAt,
+  };
 };
 
 const dispatchEmail = async (
@@ -396,54 +478,68 @@ const sendAbandonedConsultationReminders = async (
   mode: DispatchMode,
   occurredAt: string,
 ): Promise<DispatchResult> => {
-  const staleThreshold = new Date(
-    Date.now() - ABANDONED_SESSION_MINUTES * 60 * 1000,
+  const appBaseUrl = getAppBaseUrl();
+  const lookbackThreshold = new Date(
+    Date.now() - ABANDONED_LOOKBACK_HOURS * 60 * 60 * 1000,
   );
 
-  const staleSessions = await prisma.chatSession.findMany({
+  const abandonedEvents = await prisma.auditLog.findMany({
     where: {
       createdAt: {
-        lte: staleThreshold,
+        gte: lookbackThreshold,
       },
-      report: null,
+      action: "consultation.abandoned",
+      userId: {
+        not: null,
+      },
     },
     orderBy: {
       createdAt: "desc",
     },
-    take: MAX_RETARGET_EMAILS * 2,
+    take: MAX_RETARGET_EMAILS * 4,
     select: {
-      sessionId: true,
       userId: true,
+      metadata: true,
       createdAt: true,
-      createdBy: {
-        select: {
-          name: true,
-          email: true,
-          status: true,
-        },
-      },
     },
   });
 
-  const latestSessionByUser = new Map<string, (typeof staleSessions)[number]>();
-  for (const session of staleSessions) {
-    if (!latestSessionByUser.has(session.userId)) {
-      latestSessionByUser.set(session.userId, session);
+  const latestAbandonedEventByUser = new Map<string, AbandonedConsultationEvent>();
+  for (const event of abandonedEvents) {
+    const resolved = resolveAbandonedEvent(event, appBaseUrl);
+    if (resolved && !latestAbandonedEventByUser.has(resolved.userId)) {
+      latestAbandonedEventByUser.set(resolved.userId, resolved);
     }
   }
 
-  const candidates = [...latestSessionByUser.values()].filter(
-    (session) => session.createdBy.status === "ACTIVE",
-  );
+  const candidates = [...latestAbandonedEventByUser.values()];
+  const candidateUserIds = candidates.map((candidate) => candidate.userId);
+
+  const users = await prisma.user.findMany({
+    where: {
+      id: {
+        in: candidateUserIds,
+      },
+      status: "ACTIVE",
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+    },
+  });
+  const userById = new Map(users.map((user) => [user.id, user]));
 
   const recentlyReminded = await prisma.auditLog.findMany({
     where: {
       action: "growth.retarget.abandoned_consultation.sent",
       createdAt: {
-        gte: new Date(Date.now() - 24 * 60 * 60 * 1000),
+        gte: new Date(
+          Date.now() - ABANDONED_REMINDER_COOLDOWN_HOURS * 60 * 60 * 1000,
+        ),
       },
       userId: {
-        in: candidates.map((candidate) => candidate.userId),
+        in: candidateUserIds,
       },
     },
     select: {
@@ -456,29 +552,40 @@ const sendAbandonedConsultationReminders = async (
   );
 
   const targeted = candidates
-    .filter((candidate) => !remindedUserIds.has(candidate.userId))
+    .filter(
+      (candidate) =>
+        !remindedUserIds.has(candidate.userId) && userById.has(candidate.userId),
+    )
     .slice(0, MAX_RETARGET_EMAILS);
 
   let attempted = 0;
   let sent = 0;
   let failed = 0;
 
-  for (const session of targeted) {
+  for (const candidate of targeted) {
+    const user = userById.get(candidate.userId);
+    if (!user) {
+      continue;
+    }
+
     attempted += 1;
     const template = abandonedConsultationReminderTemplate(
-      normalizeName(session.createdBy.name),
-      `${getAppBaseUrl()}/dashboard/medical-agent/${session.sessionId}`,
+      normalizeName(user.name),
+      candidate.resumeUrl,
+      candidate.stepLabel,
     );
 
     const dispatchResult = await dispatchEmail(
       mode,
-      session.createdBy.email,
+      user.email,
       template.subject,
       template.html,
       "growth_abandoned_consultation_reminder",
       {
-        userId: session.userId,
-        sessionId: session.sessionId,
+        userId: candidate.userId,
+        sessionId: candidate.sessionId,
+        stepLabel: candidate.stepLabel,
+        resumeUrl: candidate.resumeUrl,
         occurredAt,
         agentId: AGENT_ID,
       },
@@ -487,10 +594,12 @@ const sendAbandonedConsultationReminders = async (
     if (dispatchResult.sent) {
       sent += 1;
       await writeAuditLog({
-        userId: session.userId,
+        userId: candidate.userId,
         action: "growth.retarget.abandoned_consultation.sent",
         metadata: {
-          sessionId: session.sessionId,
+          sessionId: candidate.sessionId,
+          stepLabel: candidate.stepLabel,
+          resumeUrl: candidate.resumeUrl,
           occurredAt,
           agentId: AGENT_ID,
         },
@@ -498,10 +607,12 @@ const sendAbandonedConsultationReminders = async (
     } else if (dispatchResult.failed) {
       failed += 1;
       await writeAuditLog({
-        userId: session.userId,
+        userId: candidate.userId,
         action: "growth.retarget.abandoned_consultation.failed",
         metadata: {
-          sessionId: session.sessionId,
+          sessionId: candidate.sessionId,
+          stepLabel: candidate.stepLabel,
+          resumeUrl: candidate.resumeUrl,
           occurredAt,
           error: dispatchResult.errorMessage,
           agentId: AGENT_ID,
@@ -515,6 +626,198 @@ const sendAbandonedConsultationReminders = async (
       action: "growth.retarget.abandoned_consultation.dry_run",
       metadata: {
         targetedUsers: targeted.length,
+        lookbackHours: ABANDONED_LOOKBACK_HOURS,
+        attempted,
+        sent,
+        failed,
+        occurredAt,
+        agentId: AGENT_ID,
+      },
+    });
+  }
+
+  return {
+    attempted,
+    sent,
+    failed,
+    mode,
+  };
+};
+
+const sendWeeklyIncompleteConsultationSummary = async (
+  mode: DispatchMode,
+  occurredAt: string,
+): Promise<DispatchResult> => {
+  const appBaseUrl = getAppBaseUrl();
+  const weekStart = getWeekStartUtc();
+
+  const abandonedEvents = await prisma.auditLog.findMany({
+    where: {
+      action: "consultation.abandoned",
+      createdAt: {
+        gte: weekStart,
+      },
+      userId: {
+        not: null,
+      },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    take: MAX_WEEKLY_INCOMPLETE_EMAILS * 6,
+    select: {
+      userId: true,
+      metadata: true,
+      createdAt: true,
+    },
+  });
+
+  const summaryByUser = new Map<
+    string,
+    { count: number; latest: AbandonedConsultationEvent }
+  >();
+  for (const event of abandonedEvents) {
+    const resolved = resolveAbandonedEvent(event, appBaseUrl);
+    if (!resolved) {
+      continue;
+    }
+
+    const existing = summaryByUser.get(resolved.userId);
+    if (!existing) {
+      summaryByUser.set(resolved.userId, {
+        count: 1,
+        latest: resolved,
+      });
+      continue;
+    }
+
+    summaryByUser.set(resolved.userId, {
+      count: existing.count + 1,
+      latest: existing.latest,
+    });
+  }
+
+  const candidateUserIds = [...summaryByUser.keys()];
+  if (candidateUserIds.length === 0) {
+    return {
+      attempted: 0,
+      sent: 0,
+      failed: 0,
+      mode,
+    };
+  }
+
+  const [users, alreadySentRows] = await Promise.all([
+    prisma.user.findMany({
+      where: {
+        id: {
+          in: candidateUserIds,
+        },
+        status: "ACTIVE",
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+      },
+      take: MAX_WEEKLY_INCOMPLETE_EMAILS,
+    }),
+    prisma.auditLog.findMany({
+      where: {
+        action: "growth.retarget.incomplete_weekly.sent",
+        createdAt: {
+          gte: weekStart,
+        },
+        userId: {
+          in: candidateUserIds,
+        },
+      },
+      select: {
+        userId: true,
+      },
+    }),
+  ]);
+
+  const alreadySentUserIds = new Set(
+    alreadySentRows.map((row) => row.userId).filter(Boolean),
+  );
+
+  let attempted = 0;
+  let sent = 0;
+  let failed = 0;
+
+  for (const user of users) {
+    if (alreadySentUserIds.has(user.id)) {
+      continue;
+    }
+
+    const summary = summaryByUser.get(user.id);
+    if (!summary) {
+      continue;
+    }
+
+    attempted += 1;
+    const template = incompleteConsultationWeeklySummaryTemplate(
+      normalizeName(user.name),
+      summary.count,
+      summary.latest.resumeUrl,
+      summary.latest.stepLabel,
+    );
+
+    const dispatchResult = await dispatchEmail(
+      mode,
+      user.email,
+      template.subject,
+      template.html,
+      "growth_weekly_incomplete_consultation_summary",
+      {
+        userId: user.id,
+        abandonedCount: summary.count,
+        lastStep: summary.latest.stepLabel,
+        resumeUrl: summary.latest.resumeUrl,
+        occurredAt,
+        agentId: AGENT_ID,
+      },
+    );
+
+    if (dispatchResult.sent) {
+      sent += 1;
+      await writeAuditLog({
+        userId: user.id,
+        action: "growth.retarget.incomplete_weekly.sent",
+        metadata: {
+          abandonedCount: summary.count,
+          lastStep: summary.latest.stepLabel,
+          resumeUrl: summary.latest.resumeUrl,
+          weekStart: weekStart.toISOString(),
+          occurredAt,
+          agentId: AGENT_ID,
+        },
+      });
+    } else if (dispatchResult.failed) {
+      failed += 1;
+      await writeAuditLog({
+        userId: user.id,
+        action: "growth.retarget.incomplete_weekly.failed",
+        metadata: {
+          abandonedCount: summary.count,
+          lastStep: summary.latest.stepLabel,
+          resumeUrl: summary.latest.resumeUrl,
+          weekStart: weekStart.toISOString(),
+          occurredAt,
+          error: dispatchResult.errorMessage,
+          agentId: AGENT_ID,
+        },
+      });
+    }
+  }
+
+  if (mode === "DRY_RUN") {
+    await writeAuditLog({
+      action: "growth.retarget.incomplete_weekly.dry_run",
+      metadata: {
+        weekStart: weekStart.toISOString(),
+        candidateUsers: users.length,
         attempted,
         sent,
         failed,
@@ -696,13 +999,19 @@ const postHandler = async (request: Request) => {
   const occurredAt = new Date().toISOString();
 
   try {
-    const [weeklyCampaign, onboarding, retargeting, disengagementSurvey] =
-      await Promise.all([
-        sendWeeklyCampaign(mode, occurredAt),
-        sendOnboardingLifecycle(mode, occurredAt),
-        sendAbandonedConsultationReminders(mode, occurredAt),
-        sendDisengagementSurvey(mode, occurredAt),
-      ]);
+    const [
+      weeklyCampaign,
+      onboarding,
+      retargeting,
+      weeklyIncompleteSummary,
+      disengagementSurvey,
+    ] = await Promise.all([
+      sendWeeklyCampaign(mode, occurredAt),
+      sendOnboardingLifecycle(mode, occurredAt),
+      sendAbandonedConsultationReminders(mode, occurredAt),
+      sendWeeklyIncompleteConsultationSummary(mode, occurredAt),
+      sendDisengagementSurvey(mode, occurredAt),
+    ]);
 
     const summary = {
       mode,
@@ -710,6 +1019,7 @@ const postHandler = async (request: Request) => {
       weeklyCampaign,
       onboarding,
       retargeting,
+      weeklyIncompleteSummary,
       disengagementSurvey,
       agentId: AGENT_ID,
     };
@@ -726,7 +1036,7 @@ const postHandler = async (request: Request) => {
       await notifyGrowthAlert({
         subject: "CareAI growth automation dry run completed",
         summary:
-          "Growth automation generated campaign, onboarding, retargeting, and disengagement survey batches in dry-run mode.",
+          "Growth automation generated campaign, onboarding, retargeting, weekly incomplete summaries, and disengagement survey batches in dry-run mode.",
         metadata: {
           ...summary,
           message:

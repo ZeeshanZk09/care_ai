@@ -228,14 +228,38 @@ export const freeUserOnboardingTemplate = (
 export const abandonedConsultationReminderTemplate = (
   name: string | null,
   dashboardUrl: string,
+  stepLabel?: string | null,
 ): EmailTemplate => {
+  const stepLine = stepLabel
+    ? `<p>We saved your progress at: <strong>${stepLabel}</strong>.</p>`
+    : '';
+
   return {
     subject: "Complete your CareAI consultation",
     html: wrapTemplate(`
       <p>Hi ${name ?? "there"},</p>
       <p>It looks like you started a consultation but did not finish it.</p>
+      ${stepLine}
       <p>Resume now to receive your consultation report and next-step guidance.</p>
       <p><a href="${dashboardUrl}">Resume consultation</a></p>
+    `),
+  };
+};
+
+export const incompleteConsultationWeeklySummaryTemplate = (
+  name: string | null,
+  abandonedCount: number,
+  resumeUrl: string,
+  lastStep?: string | null,
+): EmailTemplate => {
+  return {
+    subject: 'Your weekly CareAI consultation summary',
+    html: wrapTemplate(`
+      <p>Hi ${name ?? 'there'},</p>
+      <p>You had <strong>${abandonedCount}</strong> incomplete consultation session(s) this week.</p>
+      ${lastStep ? `<p>Latest saved step: <strong>${lastStep}</strong>.</p>` : ''}
+      <p>Resume where you left off to finish your report and next-step guidance.</p>
+      <p><a href="${resumeUrl}">Resume your consultation</a></p>
     `),
   };
 };
