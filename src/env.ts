@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from 'zod';
 
 const envSchema = z.object({
   DATABASE_URL: z.string().min(1),
@@ -12,7 +12,7 @@ const envSchema = z.object({
   AUTH_URL: z.url().optional(),
   NEXT_PUBLIC_VAPI_PUBLIC_KEY: z.string().min(1),
   NEXT_PUBLIC_VAPI_ASSISTANT_ID: z.string().min(1),
-  STRIPE_SECRET_KEY: z.string().min(1).optional(),
+  NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().min(1).optional(),
   STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
   STRIPE_BASIC_PRICE_ID: z.string().min(1).optional(),
   STRIPE_PRO_PRICE_ID: z.string().min(1).optional(),
@@ -29,8 +29,8 @@ const parsedEnv = envSchema.safeParse(process.env);
 
 if (!parsedEnv.success) {
   const errors = parsedEnv.error.issues
-    .map((issue) => `${issue.path.join(".") || "env"}: ${issue.message}`)
-    .join("; ");
+    .map((issue) => `${issue.path.join('.') || 'env'}: ${issue.message}`)
+    .join('; ');
 
   throw new Error(`Environment validation failed: ${errors}`);
 }
@@ -38,7 +38,7 @@ if (!parsedEnv.success) {
 export const env = parsedEnv.data;
 
 const stripeSchema = z.object({
-  STRIPE_SECRET_KEY: z.string().min(1),
+  NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().min(1),
   STRIPE_WEBHOOK_SECRET: z.string().min(1),
   STRIPE_BASIC_PRICE_ID: z.string().min(1),
   STRIPE_PRO_PRICE_ID: z.string().min(1),

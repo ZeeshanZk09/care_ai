@@ -6,8 +6,11 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { signIn, signOut, useSession } from 'next-auth/react';
+import { useEffect, useState } from 'react';
+import CreditWallet from '@/components/credits/CreditWallet';
 import ThemeToggle from '@/components/theme-toggle';
 import { Button } from './ui/button';
+import { useTheme } from 'next-themes';
 
 export default function HeroSectionOne() {
   const { data: session } = useSession();
@@ -101,6 +104,15 @@ export const Navbar = () => {
   const { data: session } = useSession();
   const router = useRouter();
 
+  const { resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const isDarkTheme = mounted && resolvedTheme === 'dark';
+
   const profileName = session?.user?.name ?? session?.user?.email ?? 'User';
   const profileKey = profileName.replace(/@.*/, '');
   const profileParts = profileKey.split(/[\s._-]+/).filter(Boolean);
@@ -115,7 +127,7 @@ export const Navbar = () => {
       <div className='flex items-end cursor-pointer'>
         <Image
           onClick={() => router.push('/')}
-          src='/care_ai.png'
+          src={isDarkTheme ? '/dark.png' : '/care_ai.png'}
           alt='CareAI Logo'
           loading='eager'
           width={1000}
@@ -128,6 +140,7 @@ export const Navbar = () => {
         <ThemeToggle />
         {session?.user ? (
           <div className='flex items-center gap-4'>
+            <CreditWallet />
             <Link
               href={profileHref}
               className='flex items-center gap-2 rounded-full border px-2 py-1 hover:bg-muted/60 transition-colors'
@@ -152,6 +165,9 @@ export const Navbar = () => {
             </Button>
             <Button className='max-sm:hidden' asChild>
               <Link href='/dashboard'>Dashboard</Link>
+            </Button>
+            <Button className='max-sm:hidden' variant='outline' asChild>
+              <Link href='/dashboard/tools'>Tools</Link>
             </Button>
           </div>
         ) : (

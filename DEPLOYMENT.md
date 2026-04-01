@@ -13,7 +13,7 @@
 - `OPEN_ROUTER_API_KEY`: API key for AI model access via OpenRouter.
 - `NEXT_PUBLIC_VAPI_PUBLIC_KEY`: Public VAPI key used by voice client.
 - `NEXT_PUBLIC_VAPI_ASSISTANT_ID`: VAPI assistant ID used by voice sessions.
-- `STRIPE_SECRET_KEY`: Stripe secret API key used by checkout, portal, and webhooks.
+- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`: Stripe secret API key used by checkout, portal, and webhooks.
 - `STRIPE_WEBHOOK_SECRET`: Stripe webhook signing secret for `/api/stripe/webhook` validation.
 - `STRIPE_BASIC_PRICE_ID`: Stripe price ID for BASIC plan.
 - `STRIPE_PRO_PRICE_ID`: Stripe price ID for PRO plan.

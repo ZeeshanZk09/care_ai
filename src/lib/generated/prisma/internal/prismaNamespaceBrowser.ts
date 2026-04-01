@@ -52,6 +52,9 @@ export const AnyNull = runtime.AnyNull
 
 export const ModelName = {
   User: 'User',
+  CreditLedger: 'CreditLedger',
+  CreditBalance: 'CreditBalance',
+  FeatureResult: 'FeatureResult',
   Account: 'Account',
   Session: 'Session',
   VerificationToken: 'VerificationToken',
@@ -109,6 +112,40 @@ export const UserScalarFieldEnum = {
 } as const
 
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
+
+
+export const CreditLedgerScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  delta: 'delta',
+  reason: 'reason',
+  featureKey: 'featureKey',
+  meta: 'meta',
+  createdAt: 'createdAt'
+} as const
+
+export type CreditLedgerScalarFieldEnum = (typeof CreditLedgerScalarFieldEnum)[keyof typeof CreditLedgerScalarFieldEnum]
+
+
+export const CreditBalanceScalarFieldEnum = {
+  userId: 'userId',
+  balance: 'balance',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CreditBalanceScalarFieldEnum = (typeof CreditBalanceScalarFieldEnum)[keyof typeof CreditBalanceScalarFieldEnum]
+
+
+export const FeatureResultScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  featureKey: 'featureKey',
+  inputHash: 'inputHash',
+  result: 'result',
+  createdAt: 'createdAt'
+} as const
+
+export type FeatureResultScalarFieldEnum = (typeof FeatureResultScalarFieldEnum)[keyof typeof FeatureResultScalarFieldEnum]
 
 
 export const AccountScalarFieldEnum = {
@@ -324,19 +361,19 @@ export const SortOrder = {
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
 
 
-export const JsonNullValueInput = {
-  JsonNull: JsonNull
-} as const
-
-export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
-
-
 export const NullableJsonNullValueInput = {
   DbNull: DbNull,
   JsonNull: JsonNull
 } as const
 
 export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
+
+
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
 export const QueryMode = {

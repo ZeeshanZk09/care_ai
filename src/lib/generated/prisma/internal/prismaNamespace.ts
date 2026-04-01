@@ -385,6 +385,9 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 
 export const ModelName = {
   User: 'User',
+  CreditLedger: 'CreditLedger',
+  CreditBalance: 'CreditBalance',
+  FeatureResult: 'FeatureResult',
   Account: 'Account',
   Session: 'Session',
   VerificationToken: 'VerificationToken',
@@ -415,7 +418,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "account" | "session" | "verificationToken" | "passwordResetToken" | "chatSession" | "plan" | "subscription" | "planUsage" | "payment" | "billingInvoice" | "consultation" | "auditLog" | "adminAction" | "riskSnapshot" | "stripeWebhookEvent"
+    modelProps: "user" | "creditLedger" | "creditBalance" | "featureResult" | "account" | "session" | "verificationToken" | "passwordResetToken" | "chatSession" | "plan" | "subscription" | "planUsage" | "payment" | "billingInvoice" | "consultation" | "auditLog" | "adminAction" | "riskSnapshot" | "stripeWebhookEvent"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -490,6 +493,228 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.UserCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.UserCountAggregateOutputType> | number
+        }
+      }
+    }
+    CreditLedger: {
+      payload: Prisma.$CreditLedgerPayload<ExtArgs>
+      fields: Prisma.CreditLedgerFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CreditLedgerFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreditLedgerPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CreditLedgerFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreditLedgerPayload>
+        }
+        findFirst: {
+          args: Prisma.CreditLedgerFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreditLedgerPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CreditLedgerFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreditLedgerPayload>
+        }
+        findMany: {
+          args: Prisma.CreditLedgerFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreditLedgerPayload>[]
+        }
+        create: {
+          args: Prisma.CreditLedgerCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreditLedgerPayload>
+        }
+        createMany: {
+          args: Prisma.CreditLedgerCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CreditLedgerCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreditLedgerPayload>[]
+        }
+        delete: {
+          args: Prisma.CreditLedgerDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreditLedgerPayload>
+        }
+        update: {
+          args: Prisma.CreditLedgerUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreditLedgerPayload>
+        }
+        deleteMany: {
+          args: Prisma.CreditLedgerDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CreditLedgerUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CreditLedgerUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreditLedgerPayload>[]
+        }
+        upsert: {
+          args: Prisma.CreditLedgerUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreditLedgerPayload>
+        }
+        aggregate: {
+          args: Prisma.CreditLedgerAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCreditLedger>
+        }
+        groupBy: {
+          args: Prisma.CreditLedgerGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CreditLedgerGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CreditLedgerCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CreditLedgerCountAggregateOutputType> | number
+        }
+      }
+    }
+    CreditBalance: {
+      payload: Prisma.$CreditBalancePayload<ExtArgs>
+      fields: Prisma.CreditBalanceFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CreditBalanceFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreditBalancePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CreditBalanceFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreditBalancePayload>
+        }
+        findFirst: {
+          args: Prisma.CreditBalanceFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreditBalancePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CreditBalanceFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreditBalancePayload>
+        }
+        findMany: {
+          args: Prisma.CreditBalanceFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreditBalancePayload>[]
+        }
+        create: {
+          args: Prisma.CreditBalanceCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreditBalancePayload>
+        }
+        createMany: {
+          args: Prisma.CreditBalanceCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CreditBalanceCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreditBalancePayload>[]
+        }
+        delete: {
+          args: Prisma.CreditBalanceDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreditBalancePayload>
+        }
+        update: {
+          args: Prisma.CreditBalanceUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreditBalancePayload>
+        }
+        deleteMany: {
+          args: Prisma.CreditBalanceDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CreditBalanceUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CreditBalanceUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreditBalancePayload>[]
+        }
+        upsert: {
+          args: Prisma.CreditBalanceUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CreditBalancePayload>
+        }
+        aggregate: {
+          args: Prisma.CreditBalanceAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCreditBalance>
+        }
+        groupBy: {
+          args: Prisma.CreditBalanceGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CreditBalanceGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CreditBalanceCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CreditBalanceCountAggregateOutputType> | number
+        }
+      }
+    }
+    FeatureResult: {
+      payload: Prisma.$FeatureResultPayload<ExtArgs>
+      fields: Prisma.FeatureResultFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.FeatureResultFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FeatureResultPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.FeatureResultFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FeatureResultPayload>
+        }
+        findFirst: {
+          args: Prisma.FeatureResultFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FeatureResultPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.FeatureResultFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FeatureResultPayload>
+        }
+        findMany: {
+          args: Prisma.FeatureResultFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FeatureResultPayload>[]
+        }
+        create: {
+          args: Prisma.FeatureResultCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FeatureResultPayload>
+        }
+        createMany: {
+          args: Prisma.FeatureResultCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.FeatureResultCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FeatureResultPayload>[]
+        }
+        delete: {
+          args: Prisma.FeatureResultDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FeatureResultPayload>
+        }
+        update: {
+          args: Prisma.FeatureResultUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FeatureResultPayload>
+        }
+        deleteMany: {
+          args: Prisma.FeatureResultDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.FeatureResultUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.FeatureResultUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FeatureResultPayload>[]
+        }
+        upsert: {
+          args: Prisma.FeatureResultUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FeatureResultPayload>
+        }
+        aggregate: {
+          args: Prisma.FeatureResultAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateFeatureResult>
+        }
+        groupBy: {
+          args: Prisma.FeatureResultGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FeatureResultGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.FeatureResultCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FeatureResultCountAggregateOutputType> | number
         }
       }
     }
@@ -1668,6 +1893,40 @@ export const UserScalarFieldEnum = {
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
 
 
+export const CreditLedgerScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  delta: 'delta',
+  reason: 'reason',
+  featureKey: 'featureKey',
+  meta: 'meta',
+  createdAt: 'createdAt'
+} as const
+
+export type CreditLedgerScalarFieldEnum = (typeof CreditLedgerScalarFieldEnum)[keyof typeof CreditLedgerScalarFieldEnum]
+
+
+export const CreditBalanceScalarFieldEnum = {
+  userId: 'userId',
+  balance: 'balance',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CreditBalanceScalarFieldEnum = (typeof CreditBalanceScalarFieldEnum)[keyof typeof CreditBalanceScalarFieldEnum]
+
+
+export const FeatureResultScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  featureKey: 'featureKey',
+  inputHash: 'inputHash',
+  result: 'result',
+  createdAt: 'createdAt'
+} as const
+
+export type FeatureResultScalarFieldEnum = (typeof FeatureResultScalarFieldEnum)[keyof typeof FeatureResultScalarFieldEnum]
+
+
 export const AccountScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -1881,19 +2140,19 @@ export const SortOrder = {
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
 
 
-export const JsonNullValueInput = {
-  JsonNull: JsonNull
-} as const
-
-export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
-
-
 export const NullableJsonNullValueInput = {
   DbNull: DbNull,
   JsonNull: JsonNull
 } as const
 
 export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
+
+
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
 export const QueryMode = {
@@ -2169,6 +2428,9 @@ export type PrismaClientOptions = ({
 }
 export type GlobalOmitConfig = {
   user?: Prisma.UserOmit
+  creditLedger?: Prisma.CreditLedgerOmit
+  creditBalance?: Prisma.CreditBalanceOmit
+  featureResult?: Prisma.FeatureResultOmit
   account?: Prisma.AccountOmit
   session?: Prisma.SessionOmit
   verificationToken?: Prisma.VerificationTokenOmit

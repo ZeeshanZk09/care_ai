@@ -352,6 +352,9 @@ export type UserWhereInput = {
   payments?: Prisma.PaymentListRelationFilter
   invoices?: Prisma.BillingInvoiceListRelationFilter
   consultations?: Prisma.ConsultationListRelationFilter
+  creditLedgerEntries?: Prisma.CreditLedgerListRelationFilter
+  creditBalance?: Prisma.XOR<Prisma.CreditBalanceNullableScalarRelationFilter, Prisma.CreditBalanceWhereInput> | null
+  featureResults?: Prisma.FeatureResultListRelationFilter
   auditLogs?: Prisma.AuditLogListRelationFilter
   adminActionsPerformed?: Prisma.AdminActionListRelationFilter
   adminActionsReceived?: Prisma.AdminActionListRelationFilter
@@ -387,6 +390,9 @@ export type UserOrderByWithRelationInput = {
   payments?: Prisma.PaymentOrderByRelationAggregateInput
   invoices?: Prisma.BillingInvoiceOrderByRelationAggregateInput
   consultations?: Prisma.ConsultationOrderByRelationAggregateInput
+  creditLedgerEntries?: Prisma.CreditLedgerOrderByRelationAggregateInput
+  creditBalance?: Prisma.CreditBalanceOrderByWithRelationInput
+  featureResults?: Prisma.FeatureResultOrderByRelationAggregateInput
   auditLogs?: Prisma.AuditLogOrderByRelationAggregateInput
   adminActionsPerformed?: Prisma.AdminActionOrderByRelationAggregateInput
   adminActionsReceived?: Prisma.AdminActionOrderByRelationAggregateInput
@@ -425,6 +431,9 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   payments?: Prisma.PaymentListRelationFilter
   invoices?: Prisma.BillingInvoiceListRelationFilter
   consultations?: Prisma.ConsultationListRelationFilter
+  creditLedgerEntries?: Prisma.CreditLedgerListRelationFilter
+  creditBalance?: Prisma.XOR<Prisma.CreditBalanceNullableScalarRelationFilter, Prisma.CreditBalanceWhereInput> | null
+  featureResults?: Prisma.FeatureResultListRelationFilter
   auditLogs?: Prisma.AuditLogListRelationFilter
   adminActionsPerformed?: Prisma.AdminActionListRelationFilter
   adminActionsReceived?: Prisma.AdminActionListRelationFilter
@@ -514,6 +523,9 @@ export type UserCreateInput = {
   payments?: Prisma.PaymentCreateNestedManyWithoutUserInput
   invoices?: Prisma.BillingInvoiceCreateNestedManyWithoutUserInput
   consultations?: Prisma.ConsultationCreateNestedManyWithoutUserInput
+  creditLedgerEntries?: Prisma.CreditLedgerCreateNestedManyWithoutUserInput
+  creditBalance?: Prisma.CreditBalanceCreateNestedOneWithoutUserInput
+  featureResults?: Prisma.FeatureResultCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
   adminActionsPerformed?: Prisma.AdminActionCreateNestedManyWithoutAdminUserInput
   adminActionsReceived?: Prisma.AdminActionCreateNestedManyWithoutTargetUserInput
@@ -549,6 +561,9 @@ export type UserUncheckedCreateInput = {
   payments?: Prisma.PaymentUncheckedCreateNestedManyWithoutUserInput
   invoices?: Prisma.BillingInvoiceUncheckedCreateNestedManyWithoutUserInput
   consultations?: Prisma.ConsultationUncheckedCreateNestedManyWithoutUserInput
+  creditLedgerEntries?: Prisma.CreditLedgerUncheckedCreateNestedManyWithoutUserInput
+  creditBalance?: Prisma.CreditBalanceUncheckedCreateNestedOneWithoutUserInput
+  featureResults?: Prisma.FeatureResultUncheckedCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
   adminActionsPerformed?: Prisma.AdminActionUncheckedCreateNestedManyWithoutAdminUserInput
   adminActionsReceived?: Prisma.AdminActionUncheckedCreateNestedManyWithoutTargetUserInput
@@ -584,6 +599,9 @@ export type UserUpdateInput = {
   payments?: Prisma.PaymentUpdateManyWithoutUserNestedInput
   invoices?: Prisma.BillingInvoiceUpdateManyWithoutUserNestedInput
   consultations?: Prisma.ConsultationUpdateManyWithoutUserNestedInput
+  creditLedgerEntries?: Prisma.CreditLedgerUpdateManyWithoutUserNestedInput
+  creditBalance?: Prisma.CreditBalanceUpdateOneWithoutUserNestedInput
+  featureResults?: Prisma.FeatureResultUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
   adminActionsPerformed?: Prisma.AdminActionUpdateManyWithoutAdminUserNestedInput
   adminActionsReceived?: Prisma.AdminActionUpdateManyWithoutTargetUserNestedInput
@@ -619,6 +637,9 @@ export type UserUncheckedUpdateInput = {
   payments?: Prisma.PaymentUncheckedUpdateManyWithoutUserNestedInput
   invoices?: Prisma.BillingInvoiceUncheckedUpdateManyWithoutUserNestedInput
   consultations?: Prisma.ConsultationUncheckedUpdateManyWithoutUserNestedInput
+  creditLedgerEntries?: Prisma.CreditLedgerUncheckedUpdateManyWithoutUserNestedInput
+  creditBalance?: Prisma.CreditBalanceUncheckedUpdateOneWithoutUserNestedInput
+  featureResults?: Prisma.FeatureResultUncheckedUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
   adminActionsPerformed?: Prisma.AdminActionUncheckedUpdateManyWithoutAdminUserNestedInput
   adminActionsReceived?: Prisma.AdminActionUncheckedUpdateManyWithoutTargetUserNestedInput
@@ -829,6 +850,48 @@ export type EnumUserStatusFieldUpdateOperationsInput = {
   set?: $Enums.UserStatus
 }
 
+export type UserCreateNestedOneWithoutCreditLedgerEntriesInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutCreditLedgerEntriesInput, Prisma.UserUncheckedCreateWithoutCreditLedgerEntriesInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutCreditLedgerEntriesInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutCreditLedgerEntriesNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutCreditLedgerEntriesInput, Prisma.UserUncheckedCreateWithoutCreditLedgerEntriesInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutCreditLedgerEntriesInput
+  upsert?: Prisma.UserUpsertWithoutCreditLedgerEntriesInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutCreditLedgerEntriesInput, Prisma.UserUpdateWithoutCreditLedgerEntriesInput>, Prisma.UserUncheckedUpdateWithoutCreditLedgerEntriesInput>
+}
+
+export type UserCreateNestedOneWithoutCreditBalanceInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutCreditBalanceInput, Prisma.UserUncheckedCreateWithoutCreditBalanceInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutCreditBalanceInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutCreditBalanceNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutCreditBalanceInput, Prisma.UserUncheckedCreateWithoutCreditBalanceInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutCreditBalanceInput
+  upsert?: Prisma.UserUpsertWithoutCreditBalanceInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutCreditBalanceInput, Prisma.UserUpdateWithoutCreditBalanceInput>, Prisma.UserUncheckedUpdateWithoutCreditBalanceInput>
+}
+
+export type UserCreateNestedOneWithoutFeatureResultsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutFeatureResultsInput, Prisma.UserUncheckedCreateWithoutFeatureResultsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutFeatureResultsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutFeatureResultsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutFeatureResultsInput, Prisma.UserUncheckedCreateWithoutFeatureResultsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutFeatureResultsInput
+  upsert?: Prisma.UserUpsertWithoutFeatureResultsInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutFeatureResultsInput, Prisma.UserUpdateWithoutFeatureResultsInput>, Prisma.UserUncheckedUpdateWithoutFeatureResultsInput>
+}
+
 export type UserCreateNestedOneWithoutAccountsInput = {
   create?: Prisma.XOR<Prisma.UserCreateWithoutAccountsInput, Prisma.UserUncheckedCreateWithoutAccountsInput>
   connectOrCreate?: Prisma.UserCreateOrConnectWithoutAccountsInput
@@ -999,6 +1062,498 @@ export type UserUpdateOneRequiredWithoutRiskSnapshotsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutRiskSnapshotsInput, Prisma.UserUpdateWithoutRiskSnapshotsInput>, Prisma.UserUncheckedUpdateWithoutRiskSnapshotsInput>
 }
 
+export type UserCreateWithoutCreditLedgerEntriesInput = {
+  id?: string
+  name?: string | null
+  email: string
+  emailVerified?: Date | string | null
+  password?: string | null
+  image?: string | null
+  age?: number | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  lastActiveAt?: Date | string | null
+  credit?: number
+  planTier?: $Enums.PlanTier
+  role?: $Enums.UserRole
+  status?: $Enums.UserStatus
+  consultationsUsed?: number
+  consultationsResetAt?: Date | string | null
+  premiumAccessGrantedAt?: Date | string | null
+  restrictionReason?: string | null
+  restrictionEndsAt?: Date | string | null
+  stripeCustomerId?: string | null
+  accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
+  chatSessions?: Prisma.ChatSessionCreateNestedManyWithoutCreatedByInput
+  subscriptions?: Prisma.SubscriptionCreateNestedManyWithoutUserInput
+  usageRecords?: Prisma.PlanUsageCreateNestedManyWithoutUserInput
+  payments?: Prisma.PaymentCreateNestedManyWithoutUserInput
+  invoices?: Prisma.BillingInvoiceCreateNestedManyWithoutUserInput
+  consultations?: Prisma.ConsultationCreateNestedManyWithoutUserInput
+  creditBalance?: Prisma.CreditBalanceCreateNestedOneWithoutUserInput
+  featureResults?: Prisma.FeatureResultCreateNestedManyWithoutUserInput
+  auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
+  adminActionsPerformed?: Prisma.AdminActionCreateNestedManyWithoutAdminUserInput
+  adminActionsReceived?: Prisma.AdminActionCreateNestedManyWithoutTargetUserInput
+  riskSnapshots?: Prisma.RiskSnapshotCreateNestedManyWithoutGeneratedByInput
+}
+
+export type UserUncheckedCreateWithoutCreditLedgerEntriesInput = {
+  id?: string
+  name?: string | null
+  email: string
+  emailVerified?: Date | string | null
+  password?: string | null
+  image?: string | null
+  age?: number | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  lastActiveAt?: Date | string | null
+  credit?: number
+  planTier?: $Enums.PlanTier
+  role?: $Enums.UserRole
+  status?: $Enums.UserStatus
+  consultationsUsed?: number
+  consultationsResetAt?: Date | string | null
+  premiumAccessGrantedAt?: Date | string | null
+  restrictionReason?: string | null
+  restrictionEndsAt?: Date | string | null
+  stripeCustomerId?: string | null
+  accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
+  chatSessions?: Prisma.ChatSessionUncheckedCreateNestedManyWithoutCreatedByInput
+  subscriptions?: Prisma.SubscriptionUncheckedCreateNestedManyWithoutUserInput
+  usageRecords?: Prisma.PlanUsageUncheckedCreateNestedManyWithoutUserInput
+  payments?: Prisma.PaymentUncheckedCreateNestedManyWithoutUserInput
+  invoices?: Prisma.BillingInvoiceUncheckedCreateNestedManyWithoutUserInput
+  consultations?: Prisma.ConsultationUncheckedCreateNestedManyWithoutUserInput
+  creditBalance?: Prisma.CreditBalanceUncheckedCreateNestedOneWithoutUserInput
+  featureResults?: Prisma.FeatureResultUncheckedCreateNestedManyWithoutUserInput
+  auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
+  adminActionsPerformed?: Prisma.AdminActionUncheckedCreateNestedManyWithoutAdminUserInput
+  adminActionsReceived?: Prisma.AdminActionUncheckedCreateNestedManyWithoutTargetUserInput
+  riskSnapshots?: Prisma.RiskSnapshotUncheckedCreateNestedManyWithoutGeneratedByInput
+}
+
+export type UserCreateOrConnectWithoutCreditLedgerEntriesInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutCreditLedgerEntriesInput, Prisma.UserUncheckedCreateWithoutCreditLedgerEntriesInput>
+}
+
+export type UserUpsertWithoutCreditLedgerEntriesInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutCreditLedgerEntriesInput, Prisma.UserUncheckedUpdateWithoutCreditLedgerEntriesInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutCreditLedgerEntriesInput, Prisma.UserUncheckedCreateWithoutCreditLedgerEntriesInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutCreditLedgerEntriesInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutCreditLedgerEntriesInput, Prisma.UserUncheckedUpdateWithoutCreditLedgerEntriesInput>
+}
+
+export type UserUpdateWithoutCreditLedgerEntriesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  age?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  lastActiveAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  credit?: Prisma.IntFieldUpdateOperationsInput | number
+  planTier?: Prisma.EnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  consultationsUsed?: Prisma.IntFieldUpdateOperationsInput | number
+  consultationsResetAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  premiumAccessGrantedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  restrictionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  restrictionEndsAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  stripeCustomerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
+  chatSessions?: Prisma.ChatSessionUpdateManyWithoutCreatedByNestedInput
+  subscriptions?: Prisma.SubscriptionUpdateManyWithoutUserNestedInput
+  usageRecords?: Prisma.PlanUsageUpdateManyWithoutUserNestedInput
+  payments?: Prisma.PaymentUpdateManyWithoutUserNestedInput
+  invoices?: Prisma.BillingInvoiceUpdateManyWithoutUserNestedInput
+  consultations?: Prisma.ConsultationUpdateManyWithoutUserNestedInput
+  creditBalance?: Prisma.CreditBalanceUpdateOneWithoutUserNestedInput
+  featureResults?: Prisma.FeatureResultUpdateManyWithoutUserNestedInput
+  auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
+  adminActionsPerformed?: Prisma.AdminActionUpdateManyWithoutAdminUserNestedInput
+  adminActionsReceived?: Prisma.AdminActionUpdateManyWithoutTargetUserNestedInput
+  riskSnapshots?: Prisma.RiskSnapshotUpdateManyWithoutGeneratedByNestedInput
+}
+
+export type UserUncheckedUpdateWithoutCreditLedgerEntriesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  age?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  lastActiveAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  credit?: Prisma.IntFieldUpdateOperationsInput | number
+  planTier?: Prisma.EnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  consultationsUsed?: Prisma.IntFieldUpdateOperationsInput | number
+  consultationsResetAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  premiumAccessGrantedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  restrictionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  restrictionEndsAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  stripeCustomerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
+  chatSessions?: Prisma.ChatSessionUncheckedUpdateManyWithoutCreatedByNestedInput
+  subscriptions?: Prisma.SubscriptionUncheckedUpdateManyWithoutUserNestedInput
+  usageRecords?: Prisma.PlanUsageUncheckedUpdateManyWithoutUserNestedInput
+  payments?: Prisma.PaymentUncheckedUpdateManyWithoutUserNestedInput
+  invoices?: Prisma.BillingInvoiceUncheckedUpdateManyWithoutUserNestedInput
+  consultations?: Prisma.ConsultationUncheckedUpdateManyWithoutUserNestedInput
+  creditBalance?: Prisma.CreditBalanceUncheckedUpdateOneWithoutUserNestedInput
+  featureResults?: Prisma.FeatureResultUncheckedUpdateManyWithoutUserNestedInput
+  auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
+  adminActionsPerformed?: Prisma.AdminActionUncheckedUpdateManyWithoutAdminUserNestedInput
+  adminActionsReceived?: Prisma.AdminActionUncheckedUpdateManyWithoutTargetUserNestedInput
+  riskSnapshots?: Prisma.RiskSnapshotUncheckedUpdateManyWithoutGeneratedByNestedInput
+}
+
+export type UserCreateWithoutCreditBalanceInput = {
+  id?: string
+  name?: string | null
+  email: string
+  emailVerified?: Date | string | null
+  password?: string | null
+  image?: string | null
+  age?: number | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  lastActiveAt?: Date | string | null
+  credit?: number
+  planTier?: $Enums.PlanTier
+  role?: $Enums.UserRole
+  status?: $Enums.UserStatus
+  consultationsUsed?: number
+  consultationsResetAt?: Date | string | null
+  premiumAccessGrantedAt?: Date | string | null
+  restrictionReason?: string | null
+  restrictionEndsAt?: Date | string | null
+  stripeCustomerId?: string | null
+  accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
+  chatSessions?: Prisma.ChatSessionCreateNestedManyWithoutCreatedByInput
+  subscriptions?: Prisma.SubscriptionCreateNestedManyWithoutUserInput
+  usageRecords?: Prisma.PlanUsageCreateNestedManyWithoutUserInput
+  payments?: Prisma.PaymentCreateNestedManyWithoutUserInput
+  invoices?: Prisma.BillingInvoiceCreateNestedManyWithoutUserInput
+  consultations?: Prisma.ConsultationCreateNestedManyWithoutUserInput
+  creditLedgerEntries?: Prisma.CreditLedgerCreateNestedManyWithoutUserInput
+  featureResults?: Prisma.FeatureResultCreateNestedManyWithoutUserInput
+  auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
+  adminActionsPerformed?: Prisma.AdminActionCreateNestedManyWithoutAdminUserInput
+  adminActionsReceived?: Prisma.AdminActionCreateNestedManyWithoutTargetUserInput
+  riskSnapshots?: Prisma.RiskSnapshotCreateNestedManyWithoutGeneratedByInput
+}
+
+export type UserUncheckedCreateWithoutCreditBalanceInput = {
+  id?: string
+  name?: string | null
+  email: string
+  emailVerified?: Date | string | null
+  password?: string | null
+  image?: string | null
+  age?: number | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  lastActiveAt?: Date | string | null
+  credit?: number
+  planTier?: $Enums.PlanTier
+  role?: $Enums.UserRole
+  status?: $Enums.UserStatus
+  consultationsUsed?: number
+  consultationsResetAt?: Date | string | null
+  premiumAccessGrantedAt?: Date | string | null
+  restrictionReason?: string | null
+  restrictionEndsAt?: Date | string | null
+  stripeCustomerId?: string | null
+  accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
+  chatSessions?: Prisma.ChatSessionUncheckedCreateNestedManyWithoutCreatedByInput
+  subscriptions?: Prisma.SubscriptionUncheckedCreateNestedManyWithoutUserInput
+  usageRecords?: Prisma.PlanUsageUncheckedCreateNestedManyWithoutUserInput
+  payments?: Prisma.PaymentUncheckedCreateNestedManyWithoutUserInput
+  invoices?: Prisma.BillingInvoiceUncheckedCreateNestedManyWithoutUserInput
+  consultations?: Prisma.ConsultationUncheckedCreateNestedManyWithoutUserInput
+  creditLedgerEntries?: Prisma.CreditLedgerUncheckedCreateNestedManyWithoutUserInput
+  featureResults?: Prisma.FeatureResultUncheckedCreateNestedManyWithoutUserInput
+  auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
+  adminActionsPerformed?: Prisma.AdminActionUncheckedCreateNestedManyWithoutAdminUserInput
+  adminActionsReceived?: Prisma.AdminActionUncheckedCreateNestedManyWithoutTargetUserInput
+  riskSnapshots?: Prisma.RiskSnapshotUncheckedCreateNestedManyWithoutGeneratedByInput
+}
+
+export type UserCreateOrConnectWithoutCreditBalanceInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutCreditBalanceInput, Prisma.UserUncheckedCreateWithoutCreditBalanceInput>
+}
+
+export type UserUpsertWithoutCreditBalanceInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutCreditBalanceInput, Prisma.UserUncheckedUpdateWithoutCreditBalanceInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutCreditBalanceInput, Prisma.UserUncheckedCreateWithoutCreditBalanceInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutCreditBalanceInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutCreditBalanceInput, Prisma.UserUncheckedUpdateWithoutCreditBalanceInput>
+}
+
+export type UserUpdateWithoutCreditBalanceInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  age?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  lastActiveAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  credit?: Prisma.IntFieldUpdateOperationsInput | number
+  planTier?: Prisma.EnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  consultationsUsed?: Prisma.IntFieldUpdateOperationsInput | number
+  consultationsResetAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  premiumAccessGrantedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  restrictionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  restrictionEndsAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  stripeCustomerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
+  chatSessions?: Prisma.ChatSessionUpdateManyWithoutCreatedByNestedInput
+  subscriptions?: Prisma.SubscriptionUpdateManyWithoutUserNestedInput
+  usageRecords?: Prisma.PlanUsageUpdateManyWithoutUserNestedInput
+  payments?: Prisma.PaymentUpdateManyWithoutUserNestedInput
+  invoices?: Prisma.BillingInvoiceUpdateManyWithoutUserNestedInput
+  consultations?: Prisma.ConsultationUpdateManyWithoutUserNestedInput
+  creditLedgerEntries?: Prisma.CreditLedgerUpdateManyWithoutUserNestedInput
+  featureResults?: Prisma.FeatureResultUpdateManyWithoutUserNestedInput
+  auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
+  adminActionsPerformed?: Prisma.AdminActionUpdateManyWithoutAdminUserNestedInput
+  adminActionsReceived?: Prisma.AdminActionUpdateManyWithoutTargetUserNestedInput
+  riskSnapshots?: Prisma.RiskSnapshotUpdateManyWithoutGeneratedByNestedInput
+}
+
+export type UserUncheckedUpdateWithoutCreditBalanceInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  age?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  lastActiveAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  credit?: Prisma.IntFieldUpdateOperationsInput | number
+  planTier?: Prisma.EnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  consultationsUsed?: Prisma.IntFieldUpdateOperationsInput | number
+  consultationsResetAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  premiumAccessGrantedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  restrictionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  restrictionEndsAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  stripeCustomerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
+  chatSessions?: Prisma.ChatSessionUncheckedUpdateManyWithoutCreatedByNestedInput
+  subscriptions?: Prisma.SubscriptionUncheckedUpdateManyWithoutUserNestedInput
+  usageRecords?: Prisma.PlanUsageUncheckedUpdateManyWithoutUserNestedInput
+  payments?: Prisma.PaymentUncheckedUpdateManyWithoutUserNestedInput
+  invoices?: Prisma.BillingInvoiceUncheckedUpdateManyWithoutUserNestedInput
+  consultations?: Prisma.ConsultationUncheckedUpdateManyWithoutUserNestedInput
+  creditLedgerEntries?: Prisma.CreditLedgerUncheckedUpdateManyWithoutUserNestedInput
+  featureResults?: Prisma.FeatureResultUncheckedUpdateManyWithoutUserNestedInput
+  auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
+  adminActionsPerformed?: Prisma.AdminActionUncheckedUpdateManyWithoutAdminUserNestedInput
+  adminActionsReceived?: Prisma.AdminActionUncheckedUpdateManyWithoutTargetUserNestedInput
+  riskSnapshots?: Prisma.RiskSnapshotUncheckedUpdateManyWithoutGeneratedByNestedInput
+}
+
+export type UserCreateWithoutFeatureResultsInput = {
+  id?: string
+  name?: string | null
+  email: string
+  emailVerified?: Date | string | null
+  password?: string | null
+  image?: string | null
+  age?: number | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  lastActiveAt?: Date | string | null
+  credit?: number
+  planTier?: $Enums.PlanTier
+  role?: $Enums.UserRole
+  status?: $Enums.UserStatus
+  consultationsUsed?: number
+  consultationsResetAt?: Date | string | null
+  premiumAccessGrantedAt?: Date | string | null
+  restrictionReason?: string | null
+  restrictionEndsAt?: Date | string | null
+  stripeCustomerId?: string | null
+  accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
+  chatSessions?: Prisma.ChatSessionCreateNestedManyWithoutCreatedByInput
+  subscriptions?: Prisma.SubscriptionCreateNestedManyWithoutUserInput
+  usageRecords?: Prisma.PlanUsageCreateNestedManyWithoutUserInput
+  payments?: Prisma.PaymentCreateNestedManyWithoutUserInput
+  invoices?: Prisma.BillingInvoiceCreateNestedManyWithoutUserInput
+  consultations?: Prisma.ConsultationCreateNestedManyWithoutUserInput
+  creditLedgerEntries?: Prisma.CreditLedgerCreateNestedManyWithoutUserInput
+  creditBalance?: Prisma.CreditBalanceCreateNestedOneWithoutUserInput
+  auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
+  adminActionsPerformed?: Prisma.AdminActionCreateNestedManyWithoutAdminUserInput
+  adminActionsReceived?: Prisma.AdminActionCreateNestedManyWithoutTargetUserInput
+  riskSnapshots?: Prisma.RiskSnapshotCreateNestedManyWithoutGeneratedByInput
+}
+
+export type UserUncheckedCreateWithoutFeatureResultsInput = {
+  id?: string
+  name?: string | null
+  email: string
+  emailVerified?: Date | string | null
+  password?: string | null
+  image?: string | null
+  age?: number | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  lastActiveAt?: Date | string | null
+  credit?: number
+  planTier?: $Enums.PlanTier
+  role?: $Enums.UserRole
+  status?: $Enums.UserStatus
+  consultationsUsed?: number
+  consultationsResetAt?: Date | string | null
+  premiumAccessGrantedAt?: Date | string | null
+  restrictionReason?: string | null
+  restrictionEndsAt?: Date | string | null
+  stripeCustomerId?: string | null
+  accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
+  chatSessions?: Prisma.ChatSessionUncheckedCreateNestedManyWithoutCreatedByInput
+  subscriptions?: Prisma.SubscriptionUncheckedCreateNestedManyWithoutUserInput
+  usageRecords?: Prisma.PlanUsageUncheckedCreateNestedManyWithoutUserInput
+  payments?: Prisma.PaymentUncheckedCreateNestedManyWithoutUserInput
+  invoices?: Prisma.BillingInvoiceUncheckedCreateNestedManyWithoutUserInput
+  consultations?: Prisma.ConsultationUncheckedCreateNestedManyWithoutUserInput
+  creditLedgerEntries?: Prisma.CreditLedgerUncheckedCreateNestedManyWithoutUserInput
+  creditBalance?: Prisma.CreditBalanceUncheckedCreateNestedOneWithoutUserInput
+  auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
+  adminActionsPerformed?: Prisma.AdminActionUncheckedCreateNestedManyWithoutAdminUserInput
+  adminActionsReceived?: Prisma.AdminActionUncheckedCreateNestedManyWithoutTargetUserInput
+  riskSnapshots?: Prisma.RiskSnapshotUncheckedCreateNestedManyWithoutGeneratedByInput
+}
+
+export type UserCreateOrConnectWithoutFeatureResultsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutFeatureResultsInput, Prisma.UserUncheckedCreateWithoutFeatureResultsInput>
+}
+
+export type UserUpsertWithoutFeatureResultsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutFeatureResultsInput, Prisma.UserUncheckedUpdateWithoutFeatureResultsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutFeatureResultsInput, Prisma.UserUncheckedCreateWithoutFeatureResultsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutFeatureResultsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutFeatureResultsInput, Prisma.UserUncheckedUpdateWithoutFeatureResultsInput>
+}
+
+export type UserUpdateWithoutFeatureResultsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  age?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  lastActiveAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  credit?: Prisma.IntFieldUpdateOperationsInput | number
+  planTier?: Prisma.EnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  consultationsUsed?: Prisma.IntFieldUpdateOperationsInput | number
+  consultationsResetAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  premiumAccessGrantedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  restrictionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  restrictionEndsAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  stripeCustomerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
+  chatSessions?: Prisma.ChatSessionUpdateManyWithoutCreatedByNestedInput
+  subscriptions?: Prisma.SubscriptionUpdateManyWithoutUserNestedInput
+  usageRecords?: Prisma.PlanUsageUpdateManyWithoutUserNestedInput
+  payments?: Prisma.PaymentUpdateManyWithoutUserNestedInput
+  invoices?: Prisma.BillingInvoiceUpdateManyWithoutUserNestedInput
+  consultations?: Prisma.ConsultationUpdateManyWithoutUserNestedInput
+  creditLedgerEntries?: Prisma.CreditLedgerUpdateManyWithoutUserNestedInput
+  creditBalance?: Prisma.CreditBalanceUpdateOneWithoutUserNestedInput
+  auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
+  adminActionsPerformed?: Prisma.AdminActionUpdateManyWithoutAdminUserNestedInput
+  adminActionsReceived?: Prisma.AdminActionUpdateManyWithoutTargetUserNestedInput
+  riskSnapshots?: Prisma.RiskSnapshotUpdateManyWithoutGeneratedByNestedInput
+}
+
+export type UserUncheckedUpdateWithoutFeatureResultsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  age?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  lastActiveAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  credit?: Prisma.IntFieldUpdateOperationsInput | number
+  planTier?: Prisma.EnumPlanTierFieldUpdateOperationsInput | $Enums.PlanTier
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  consultationsUsed?: Prisma.IntFieldUpdateOperationsInput | number
+  consultationsResetAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  premiumAccessGrantedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  restrictionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  restrictionEndsAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  stripeCustomerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
+  chatSessions?: Prisma.ChatSessionUncheckedUpdateManyWithoutCreatedByNestedInput
+  subscriptions?: Prisma.SubscriptionUncheckedUpdateManyWithoutUserNestedInput
+  usageRecords?: Prisma.PlanUsageUncheckedUpdateManyWithoutUserNestedInput
+  payments?: Prisma.PaymentUncheckedUpdateManyWithoutUserNestedInput
+  invoices?: Prisma.BillingInvoiceUncheckedUpdateManyWithoutUserNestedInput
+  consultations?: Prisma.ConsultationUncheckedUpdateManyWithoutUserNestedInput
+  creditLedgerEntries?: Prisma.CreditLedgerUncheckedUpdateManyWithoutUserNestedInput
+  creditBalance?: Prisma.CreditBalanceUncheckedUpdateOneWithoutUserNestedInput
+  auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
+  adminActionsPerformed?: Prisma.AdminActionUncheckedUpdateManyWithoutAdminUserNestedInput
+  adminActionsReceived?: Prisma.AdminActionUncheckedUpdateManyWithoutTargetUserNestedInput
+  riskSnapshots?: Prisma.RiskSnapshotUncheckedUpdateManyWithoutGeneratedByNestedInput
+}
+
 export type UserCreateWithoutAccountsInput = {
   id?: string
   name?: string | null
@@ -1027,6 +1582,9 @@ export type UserCreateWithoutAccountsInput = {
   payments?: Prisma.PaymentCreateNestedManyWithoutUserInput
   invoices?: Prisma.BillingInvoiceCreateNestedManyWithoutUserInput
   consultations?: Prisma.ConsultationCreateNestedManyWithoutUserInput
+  creditLedgerEntries?: Prisma.CreditLedgerCreateNestedManyWithoutUserInput
+  creditBalance?: Prisma.CreditBalanceCreateNestedOneWithoutUserInput
+  featureResults?: Prisma.FeatureResultCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
   adminActionsPerformed?: Prisma.AdminActionCreateNestedManyWithoutAdminUserInput
   adminActionsReceived?: Prisma.AdminActionCreateNestedManyWithoutTargetUserInput
@@ -1061,6 +1619,9 @@ export type UserUncheckedCreateWithoutAccountsInput = {
   payments?: Prisma.PaymentUncheckedCreateNestedManyWithoutUserInput
   invoices?: Prisma.BillingInvoiceUncheckedCreateNestedManyWithoutUserInput
   consultations?: Prisma.ConsultationUncheckedCreateNestedManyWithoutUserInput
+  creditLedgerEntries?: Prisma.CreditLedgerUncheckedCreateNestedManyWithoutUserInput
+  creditBalance?: Prisma.CreditBalanceUncheckedCreateNestedOneWithoutUserInput
+  featureResults?: Prisma.FeatureResultUncheckedCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
   adminActionsPerformed?: Prisma.AdminActionUncheckedCreateNestedManyWithoutAdminUserInput
   adminActionsReceived?: Prisma.AdminActionUncheckedCreateNestedManyWithoutTargetUserInput
@@ -1111,6 +1672,9 @@ export type UserUpdateWithoutAccountsInput = {
   payments?: Prisma.PaymentUpdateManyWithoutUserNestedInput
   invoices?: Prisma.BillingInvoiceUpdateManyWithoutUserNestedInput
   consultations?: Prisma.ConsultationUpdateManyWithoutUserNestedInput
+  creditLedgerEntries?: Prisma.CreditLedgerUpdateManyWithoutUserNestedInput
+  creditBalance?: Prisma.CreditBalanceUpdateOneWithoutUserNestedInput
+  featureResults?: Prisma.FeatureResultUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
   adminActionsPerformed?: Prisma.AdminActionUpdateManyWithoutAdminUserNestedInput
   adminActionsReceived?: Prisma.AdminActionUpdateManyWithoutTargetUserNestedInput
@@ -1145,6 +1709,9 @@ export type UserUncheckedUpdateWithoutAccountsInput = {
   payments?: Prisma.PaymentUncheckedUpdateManyWithoutUserNestedInput
   invoices?: Prisma.BillingInvoiceUncheckedUpdateManyWithoutUserNestedInput
   consultations?: Prisma.ConsultationUncheckedUpdateManyWithoutUserNestedInput
+  creditLedgerEntries?: Prisma.CreditLedgerUncheckedUpdateManyWithoutUserNestedInput
+  creditBalance?: Prisma.CreditBalanceUncheckedUpdateOneWithoutUserNestedInput
+  featureResults?: Prisma.FeatureResultUncheckedUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
   adminActionsPerformed?: Prisma.AdminActionUncheckedUpdateManyWithoutAdminUserNestedInput
   adminActionsReceived?: Prisma.AdminActionUncheckedUpdateManyWithoutTargetUserNestedInput
@@ -1179,6 +1746,9 @@ export type UserCreateWithoutSessionsInput = {
   payments?: Prisma.PaymentCreateNestedManyWithoutUserInput
   invoices?: Prisma.BillingInvoiceCreateNestedManyWithoutUserInput
   consultations?: Prisma.ConsultationCreateNestedManyWithoutUserInput
+  creditLedgerEntries?: Prisma.CreditLedgerCreateNestedManyWithoutUserInput
+  creditBalance?: Prisma.CreditBalanceCreateNestedOneWithoutUserInput
+  featureResults?: Prisma.FeatureResultCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
   adminActionsPerformed?: Prisma.AdminActionCreateNestedManyWithoutAdminUserInput
   adminActionsReceived?: Prisma.AdminActionCreateNestedManyWithoutTargetUserInput
@@ -1213,6 +1783,9 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   payments?: Prisma.PaymentUncheckedCreateNestedManyWithoutUserInput
   invoices?: Prisma.BillingInvoiceUncheckedCreateNestedManyWithoutUserInput
   consultations?: Prisma.ConsultationUncheckedCreateNestedManyWithoutUserInput
+  creditLedgerEntries?: Prisma.CreditLedgerUncheckedCreateNestedManyWithoutUserInput
+  creditBalance?: Prisma.CreditBalanceUncheckedCreateNestedOneWithoutUserInput
+  featureResults?: Prisma.FeatureResultUncheckedCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
   adminActionsPerformed?: Prisma.AdminActionUncheckedCreateNestedManyWithoutAdminUserInput
   adminActionsReceived?: Prisma.AdminActionUncheckedCreateNestedManyWithoutTargetUserInput
@@ -1263,6 +1836,9 @@ export type UserUpdateWithoutSessionsInput = {
   payments?: Prisma.PaymentUpdateManyWithoutUserNestedInput
   invoices?: Prisma.BillingInvoiceUpdateManyWithoutUserNestedInput
   consultations?: Prisma.ConsultationUpdateManyWithoutUserNestedInput
+  creditLedgerEntries?: Prisma.CreditLedgerUpdateManyWithoutUserNestedInput
+  creditBalance?: Prisma.CreditBalanceUpdateOneWithoutUserNestedInput
+  featureResults?: Prisma.FeatureResultUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
   adminActionsPerformed?: Prisma.AdminActionUpdateManyWithoutAdminUserNestedInput
   adminActionsReceived?: Prisma.AdminActionUpdateManyWithoutTargetUserNestedInput
@@ -1297,6 +1873,9 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   payments?: Prisma.PaymentUncheckedUpdateManyWithoutUserNestedInput
   invoices?: Prisma.BillingInvoiceUncheckedUpdateManyWithoutUserNestedInput
   consultations?: Prisma.ConsultationUncheckedUpdateManyWithoutUserNestedInput
+  creditLedgerEntries?: Prisma.CreditLedgerUncheckedUpdateManyWithoutUserNestedInput
+  creditBalance?: Prisma.CreditBalanceUncheckedUpdateOneWithoutUserNestedInput
+  featureResults?: Prisma.FeatureResultUncheckedUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
   adminActionsPerformed?: Prisma.AdminActionUncheckedUpdateManyWithoutAdminUserNestedInput
   adminActionsReceived?: Prisma.AdminActionUncheckedUpdateManyWithoutTargetUserNestedInput
@@ -1331,6 +1910,9 @@ export type UserCreateWithoutChatSessionsInput = {
   payments?: Prisma.PaymentCreateNestedManyWithoutUserInput
   invoices?: Prisma.BillingInvoiceCreateNestedManyWithoutUserInput
   consultations?: Prisma.ConsultationCreateNestedManyWithoutUserInput
+  creditLedgerEntries?: Prisma.CreditLedgerCreateNestedManyWithoutUserInput
+  creditBalance?: Prisma.CreditBalanceCreateNestedOneWithoutUserInput
+  featureResults?: Prisma.FeatureResultCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
   adminActionsPerformed?: Prisma.AdminActionCreateNestedManyWithoutAdminUserInput
   adminActionsReceived?: Prisma.AdminActionCreateNestedManyWithoutTargetUserInput
@@ -1365,6 +1947,9 @@ export type UserUncheckedCreateWithoutChatSessionsInput = {
   payments?: Prisma.PaymentUncheckedCreateNestedManyWithoutUserInput
   invoices?: Prisma.BillingInvoiceUncheckedCreateNestedManyWithoutUserInput
   consultations?: Prisma.ConsultationUncheckedCreateNestedManyWithoutUserInput
+  creditLedgerEntries?: Prisma.CreditLedgerUncheckedCreateNestedManyWithoutUserInput
+  creditBalance?: Prisma.CreditBalanceUncheckedCreateNestedOneWithoutUserInput
+  featureResults?: Prisma.FeatureResultUncheckedCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
   adminActionsPerformed?: Prisma.AdminActionUncheckedCreateNestedManyWithoutAdminUserInput
   adminActionsReceived?: Prisma.AdminActionUncheckedCreateNestedManyWithoutTargetUserInput
@@ -1415,6 +2000,9 @@ export type UserUpdateWithoutChatSessionsInput = {
   payments?: Prisma.PaymentUpdateManyWithoutUserNestedInput
   invoices?: Prisma.BillingInvoiceUpdateManyWithoutUserNestedInput
   consultations?: Prisma.ConsultationUpdateManyWithoutUserNestedInput
+  creditLedgerEntries?: Prisma.CreditLedgerUpdateManyWithoutUserNestedInput
+  creditBalance?: Prisma.CreditBalanceUpdateOneWithoutUserNestedInput
+  featureResults?: Prisma.FeatureResultUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
   adminActionsPerformed?: Prisma.AdminActionUpdateManyWithoutAdminUserNestedInput
   adminActionsReceived?: Prisma.AdminActionUpdateManyWithoutTargetUserNestedInput
@@ -1449,6 +2037,9 @@ export type UserUncheckedUpdateWithoutChatSessionsInput = {
   payments?: Prisma.PaymentUncheckedUpdateManyWithoutUserNestedInput
   invoices?: Prisma.BillingInvoiceUncheckedUpdateManyWithoutUserNestedInput
   consultations?: Prisma.ConsultationUncheckedUpdateManyWithoutUserNestedInput
+  creditLedgerEntries?: Prisma.CreditLedgerUncheckedUpdateManyWithoutUserNestedInput
+  creditBalance?: Prisma.CreditBalanceUncheckedUpdateOneWithoutUserNestedInput
+  featureResults?: Prisma.FeatureResultUncheckedUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
   adminActionsPerformed?: Prisma.AdminActionUncheckedUpdateManyWithoutAdminUserNestedInput
   adminActionsReceived?: Prisma.AdminActionUncheckedUpdateManyWithoutTargetUserNestedInput
@@ -1483,6 +2074,9 @@ export type UserCreateWithoutSubscriptionsInput = {
   payments?: Prisma.PaymentCreateNestedManyWithoutUserInput
   invoices?: Prisma.BillingInvoiceCreateNestedManyWithoutUserInput
   consultations?: Prisma.ConsultationCreateNestedManyWithoutUserInput
+  creditLedgerEntries?: Prisma.CreditLedgerCreateNestedManyWithoutUserInput
+  creditBalance?: Prisma.CreditBalanceCreateNestedOneWithoutUserInput
+  featureResults?: Prisma.FeatureResultCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
   adminActionsPerformed?: Prisma.AdminActionCreateNestedManyWithoutAdminUserInput
   adminActionsReceived?: Prisma.AdminActionCreateNestedManyWithoutTargetUserInput
@@ -1517,6 +2111,9 @@ export type UserUncheckedCreateWithoutSubscriptionsInput = {
   payments?: Prisma.PaymentUncheckedCreateNestedManyWithoutUserInput
   invoices?: Prisma.BillingInvoiceUncheckedCreateNestedManyWithoutUserInput
   consultations?: Prisma.ConsultationUncheckedCreateNestedManyWithoutUserInput
+  creditLedgerEntries?: Prisma.CreditLedgerUncheckedCreateNestedManyWithoutUserInput
+  creditBalance?: Prisma.CreditBalanceUncheckedCreateNestedOneWithoutUserInput
+  featureResults?: Prisma.FeatureResultUncheckedCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
   adminActionsPerformed?: Prisma.AdminActionUncheckedCreateNestedManyWithoutAdminUserInput
   adminActionsReceived?: Prisma.AdminActionUncheckedCreateNestedManyWithoutTargetUserInput
@@ -1567,6 +2164,9 @@ export type UserUpdateWithoutSubscriptionsInput = {
   payments?: Prisma.PaymentUpdateManyWithoutUserNestedInput
   invoices?: Prisma.BillingInvoiceUpdateManyWithoutUserNestedInput
   consultations?: Prisma.ConsultationUpdateManyWithoutUserNestedInput
+  creditLedgerEntries?: Prisma.CreditLedgerUpdateManyWithoutUserNestedInput
+  creditBalance?: Prisma.CreditBalanceUpdateOneWithoutUserNestedInput
+  featureResults?: Prisma.FeatureResultUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
   adminActionsPerformed?: Prisma.AdminActionUpdateManyWithoutAdminUserNestedInput
   adminActionsReceived?: Prisma.AdminActionUpdateManyWithoutTargetUserNestedInput
@@ -1601,6 +2201,9 @@ export type UserUncheckedUpdateWithoutSubscriptionsInput = {
   payments?: Prisma.PaymentUncheckedUpdateManyWithoutUserNestedInput
   invoices?: Prisma.BillingInvoiceUncheckedUpdateManyWithoutUserNestedInput
   consultations?: Prisma.ConsultationUncheckedUpdateManyWithoutUserNestedInput
+  creditLedgerEntries?: Prisma.CreditLedgerUncheckedUpdateManyWithoutUserNestedInput
+  creditBalance?: Prisma.CreditBalanceUncheckedUpdateOneWithoutUserNestedInput
+  featureResults?: Prisma.FeatureResultUncheckedUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
   adminActionsPerformed?: Prisma.AdminActionUncheckedUpdateManyWithoutAdminUserNestedInput
   adminActionsReceived?: Prisma.AdminActionUncheckedUpdateManyWithoutTargetUserNestedInput
@@ -1635,6 +2238,9 @@ export type UserCreateWithoutUsageRecordsInput = {
   payments?: Prisma.PaymentCreateNestedManyWithoutUserInput
   invoices?: Prisma.BillingInvoiceCreateNestedManyWithoutUserInput
   consultations?: Prisma.ConsultationCreateNestedManyWithoutUserInput
+  creditLedgerEntries?: Prisma.CreditLedgerCreateNestedManyWithoutUserInput
+  creditBalance?: Prisma.CreditBalanceCreateNestedOneWithoutUserInput
+  featureResults?: Prisma.FeatureResultCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
   adminActionsPerformed?: Prisma.AdminActionCreateNestedManyWithoutAdminUserInput
   adminActionsReceived?: Prisma.AdminActionCreateNestedManyWithoutTargetUserInput
@@ -1669,6 +2275,9 @@ export type UserUncheckedCreateWithoutUsageRecordsInput = {
   payments?: Prisma.PaymentUncheckedCreateNestedManyWithoutUserInput
   invoices?: Prisma.BillingInvoiceUncheckedCreateNestedManyWithoutUserInput
   consultations?: Prisma.ConsultationUncheckedCreateNestedManyWithoutUserInput
+  creditLedgerEntries?: Prisma.CreditLedgerUncheckedCreateNestedManyWithoutUserInput
+  creditBalance?: Prisma.CreditBalanceUncheckedCreateNestedOneWithoutUserInput
+  featureResults?: Prisma.FeatureResultUncheckedCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
   adminActionsPerformed?: Prisma.AdminActionUncheckedCreateNestedManyWithoutAdminUserInput
   adminActionsReceived?: Prisma.AdminActionUncheckedCreateNestedManyWithoutTargetUserInput
@@ -1719,6 +2328,9 @@ export type UserUpdateWithoutUsageRecordsInput = {
   payments?: Prisma.PaymentUpdateManyWithoutUserNestedInput
   invoices?: Prisma.BillingInvoiceUpdateManyWithoutUserNestedInput
   consultations?: Prisma.ConsultationUpdateManyWithoutUserNestedInput
+  creditLedgerEntries?: Prisma.CreditLedgerUpdateManyWithoutUserNestedInput
+  creditBalance?: Prisma.CreditBalanceUpdateOneWithoutUserNestedInput
+  featureResults?: Prisma.FeatureResultUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
   adminActionsPerformed?: Prisma.AdminActionUpdateManyWithoutAdminUserNestedInput
   adminActionsReceived?: Prisma.AdminActionUpdateManyWithoutTargetUserNestedInput
@@ -1753,6 +2365,9 @@ export type UserUncheckedUpdateWithoutUsageRecordsInput = {
   payments?: Prisma.PaymentUncheckedUpdateManyWithoutUserNestedInput
   invoices?: Prisma.BillingInvoiceUncheckedUpdateManyWithoutUserNestedInput
   consultations?: Prisma.ConsultationUncheckedUpdateManyWithoutUserNestedInput
+  creditLedgerEntries?: Prisma.CreditLedgerUncheckedUpdateManyWithoutUserNestedInput
+  creditBalance?: Prisma.CreditBalanceUncheckedUpdateOneWithoutUserNestedInput
+  featureResults?: Prisma.FeatureResultUncheckedUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
   adminActionsPerformed?: Prisma.AdminActionUncheckedUpdateManyWithoutAdminUserNestedInput
   adminActionsReceived?: Prisma.AdminActionUncheckedUpdateManyWithoutTargetUserNestedInput
@@ -1787,6 +2402,9 @@ export type UserCreateWithoutPaymentsInput = {
   usageRecords?: Prisma.PlanUsageCreateNestedManyWithoutUserInput
   invoices?: Prisma.BillingInvoiceCreateNestedManyWithoutUserInput
   consultations?: Prisma.ConsultationCreateNestedManyWithoutUserInput
+  creditLedgerEntries?: Prisma.CreditLedgerCreateNestedManyWithoutUserInput
+  creditBalance?: Prisma.CreditBalanceCreateNestedOneWithoutUserInput
+  featureResults?: Prisma.FeatureResultCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
   adminActionsPerformed?: Prisma.AdminActionCreateNestedManyWithoutAdminUserInput
   adminActionsReceived?: Prisma.AdminActionCreateNestedManyWithoutTargetUserInput
@@ -1821,6 +2439,9 @@ export type UserUncheckedCreateWithoutPaymentsInput = {
   usageRecords?: Prisma.PlanUsageUncheckedCreateNestedManyWithoutUserInput
   invoices?: Prisma.BillingInvoiceUncheckedCreateNestedManyWithoutUserInput
   consultations?: Prisma.ConsultationUncheckedCreateNestedManyWithoutUserInput
+  creditLedgerEntries?: Prisma.CreditLedgerUncheckedCreateNestedManyWithoutUserInput
+  creditBalance?: Prisma.CreditBalanceUncheckedCreateNestedOneWithoutUserInput
+  featureResults?: Prisma.FeatureResultUncheckedCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
   adminActionsPerformed?: Prisma.AdminActionUncheckedCreateNestedManyWithoutAdminUserInput
   adminActionsReceived?: Prisma.AdminActionUncheckedCreateNestedManyWithoutTargetUserInput
@@ -1871,6 +2492,9 @@ export type UserUpdateWithoutPaymentsInput = {
   usageRecords?: Prisma.PlanUsageUpdateManyWithoutUserNestedInput
   invoices?: Prisma.BillingInvoiceUpdateManyWithoutUserNestedInput
   consultations?: Prisma.ConsultationUpdateManyWithoutUserNestedInput
+  creditLedgerEntries?: Prisma.CreditLedgerUpdateManyWithoutUserNestedInput
+  creditBalance?: Prisma.CreditBalanceUpdateOneWithoutUserNestedInput
+  featureResults?: Prisma.FeatureResultUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
   adminActionsPerformed?: Prisma.AdminActionUpdateManyWithoutAdminUserNestedInput
   adminActionsReceived?: Prisma.AdminActionUpdateManyWithoutTargetUserNestedInput
@@ -1905,6 +2529,9 @@ export type UserUncheckedUpdateWithoutPaymentsInput = {
   usageRecords?: Prisma.PlanUsageUncheckedUpdateManyWithoutUserNestedInput
   invoices?: Prisma.BillingInvoiceUncheckedUpdateManyWithoutUserNestedInput
   consultations?: Prisma.ConsultationUncheckedUpdateManyWithoutUserNestedInput
+  creditLedgerEntries?: Prisma.CreditLedgerUncheckedUpdateManyWithoutUserNestedInput
+  creditBalance?: Prisma.CreditBalanceUncheckedUpdateOneWithoutUserNestedInput
+  featureResults?: Prisma.FeatureResultUncheckedUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
   adminActionsPerformed?: Prisma.AdminActionUncheckedUpdateManyWithoutAdminUserNestedInput
   adminActionsReceived?: Prisma.AdminActionUncheckedUpdateManyWithoutTargetUserNestedInput
@@ -1939,6 +2566,9 @@ export type UserCreateWithoutInvoicesInput = {
   usageRecords?: Prisma.PlanUsageCreateNestedManyWithoutUserInput
   payments?: Prisma.PaymentCreateNestedManyWithoutUserInput
   consultations?: Prisma.ConsultationCreateNestedManyWithoutUserInput
+  creditLedgerEntries?: Prisma.CreditLedgerCreateNestedManyWithoutUserInput
+  creditBalance?: Prisma.CreditBalanceCreateNestedOneWithoutUserInput
+  featureResults?: Prisma.FeatureResultCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
   adminActionsPerformed?: Prisma.AdminActionCreateNestedManyWithoutAdminUserInput
   adminActionsReceived?: Prisma.AdminActionCreateNestedManyWithoutTargetUserInput
@@ -1973,6 +2603,9 @@ export type UserUncheckedCreateWithoutInvoicesInput = {
   usageRecords?: Prisma.PlanUsageUncheckedCreateNestedManyWithoutUserInput
   payments?: Prisma.PaymentUncheckedCreateNestedManyWithoutUserInput
   consultations?: Prisma.ConsultationUncheckedCreateNestedManyWithoutUserInput
+  creditLedgerEntries?: Prisma.CreditLedgerUncheckedCreateNestedManyWithoutUserInput
+  creditBalance?: Prisma.CreditBalanceUncheckedCreateNestedOneWithoutUserInput
+  featureResults?: Prisma.FeatureResultUncheckedCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
   adminActionsPerformed?: Prisma.AdminActionUncheckedCreateNestedManyWithoutAdminUserInput
   adminActionsReceived?: Prisma.AdminActionUncheckedCreateNestedManyWithoutTargetUserInput
@@ -2023,6 +2656,9 @@ export type UserUpdateWithoutInvoicesInput = {
   usageRecords?: Prisma.PlanUsageUpdateManyWithoutUserNestedInput
   payments?: Prisma.PaymentUpdateManyWithoutUserNestedInput
   consultations?: Prisma.ConsultationUpdateManyWithoutUserNestedInput
+  creditLedgerEntries?: Prisma.CreditLedgerUpdateManyWithoutUserNestedInput
+  creditBalance?: Prisma.CreditBalanceUpdateOneWithoutUserNestedInput
+  featureResults?: Prisma.FeatureResultUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
   adminActionsPerformed?: Prisma.AdminActionUpdateManyWithoutAdminUserNestedInput
   adminActionsReceived?: Prisma.AdminActionUpdateManyWithoutTargetUserNestedInput
@@ -2057,6 +2693,9 @@ export type UserUncheckedUpdateWithoutInvoicesInput = {
   usageRecords?: Prisma.PlanUsageUncheckedUpdateManyWithoutUserNestedInput
   payments?: Prisma.PaymentUncheckedUpdateManyWithoutUserNestedInput
   consultations?: Prisma.ConsultationUncheckedUpdateManyWithoutUserNestedInput
+  creditLedgerEntries?: Prisma.CreditLedgerUncheckedUpdateManyWithoutUserNestedInput
+  creditBalance?: Prisma.CreditBalanceUncheckedUpdateOneWithoutUserNestedInput
+  featureResults?: Prisma.FeatureResultUncheckedUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
   adminActionsPerformed?: Prisma.AdminActionUncheckedUpdateManyWithoutAdminUserNestedInput
   adminActionsReceived?: Prisma.AdminActionUncheckedUpdateManyWithoutTargetUserNestedInput
@@ -2091,6 +2730,9 @@ export type UserCreateWithoutConsultationsInput = {
   usageRecords?: Prisma.PlanUsageCreateNestedManyWithoutUserInput
   payments?: Prisma.PaymentCreateNestedManyWithoutUserInput
   invoices?: Prisma.BillingInvoiceCreateNestedManyWithoutUserInput
+  creditLedgerEntries?: Prisma.CreditLedgerCreateNestedManyWithoutUserInput
+  creditBalance?: Prisma.CreditBalanceCreateNestedOneWithoutUserInput
+  featureResults?: Prisma.FeatureResultCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
   adminActionsPerformed?: Prisma.AdminActionCreateNestedManyWithoutAdminUserInput
   adminActionsReceived?: Prisma.AdminActionCreateNestedManyWithoutTargetUserInput
@@ -2125,6 +2767,9 @@ export type UserUncheckedCreateWithoutConsultationsInput = {
   usageRecords?: Prisma.PlanUsageUncheckedCreateNestedManyWithoutUserInput
   payments?: Prisma.PaymentUncheckedCreateNestedManyWithoutUserInput
   invoices?: Prisma.BillingInvoiceUncheckedCreateNestedManyWithoutUserInput
+  creditLedgerEntries?: Prisma.CreditLedgerUncheckedCreateNestedManyWithoutUserInput
+  creditBalance?: Prisma.CreditBalanceUncheckedCreateNestedOneWithoutUserInput
+  featureResults?: Prisma.FeatureResultUncheckedCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
   adminActionsPerformed?: Prisma.AdminActionUncheckedCreateNestedManyWithoutAdminUserInput
   adminActionsReceived?: Prisma.AdminActionUncheckedCreateNestedManyWithoutTargetUserInput
@@ -2175,6 +2820,9 @@ export type UserUpdateWithoutConsultationsInput = {
   usageRecords?: Prisma.PlanUsageUpdateManyWithoutUserNestedInput
   payments?: Prisma.PaymentUpdateManyWithoutUserNestedInput
   invoices?: Prisma.BillingInvoiceUpdateManyWithoutUserNestedInput
+  creditLedgerEntries?: Prisma.CreditLedgerUpdateManyWithoutUserNestedInput
+  creditBalance?: Prisma.CreditBalanceUpdateOneWithoutUserNestedInput
+  featureResults?: Prisma.FeatureResultUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
   adminActionsPerformed?: Prisma.AdminActionUpdateManyWithoutAdminUserNestedInput
   adminActionsReceived?: Prisma.AdminActionUpdateManyWithoutTargetUserNestedInput
@@ -2209,6 +2857,9 @@ export type UserUncheckedUpdateWithoutConsultationsInput = {
   usageRecords?: Prisma.PlanUsageUncheckedUpdateManyWithoutUserNestedInput
   payments?: Prisma.PaymentUncheckedUpdateManyWithoutUserNestedInput
   invoices?: Prisma.BillingInvoiceUncheckedUpdateManyWithoutUserNestedInput
+  creditLedgerEntries?: Prisma.CreditLedgerUncheckedUpdateManyWithoutUserNestedInput
+  creditBalance?: Prisma.CreditBalanceUncheckedUpdateOneWithoutUserNestedInput
+  featureResults?: Prisma.FeatureResultUncheckedUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
   adminActionsPerformed?: Prisma.AdminActionUncheckedUpdateManyWithoutAdminUserNestedInput
   adminActionsReceived?: Prisma.AdminActionUncheckedUpdateManyWithoutTargetUserNestedInput
@@ -2244,6 +2895,9 @@ export type UserCreateWithoutAuditLogsInput = {
   payments?: Prisma.PaymentCreateNestedManyWithoutUserInput
   invoices?: Prisma.BillingInvoiceCreateNestedManyWithoutUserInput
   consultations?: Prisma.ConsultationCreateNestedManyWithoutUserInput
+  creditLedgerEntries?: Prisma.CreditLedgerCreateNestedManyWithoutUserInput
+  creditBalance?: Prisma.CreditBalanceCreateNestedOneWithoutUserInput
+  featureResults?: Prisma.FeatureResultCreateNestedManyWithoutUserInput
   adminActionsPerformed?: Prisma.AdminActionCreateNestedManyWithoutAdminUserInput
   adminActionsReceived?: Prisma.AdminActionCreateNestedManyWithoutTargetUserInput
   riskSnapshots?: Prisma.RiskSnapshotCreateNestedManyWithoutGeneratedByInput
@@ -2278,6 +2932,9 @@ export type UserUncheckedCreateWithoutAuditLogsInput = {
   payments?: Prisma.PaymentUncheckedCreateNestedManyWithoutUserInput
   invoices?: Prisma.BillingInvoiceUncheckedCreateNestedManyWithoutUserInput
   consultations?: Prisma.ConsultationUncheckedCreateNestedManyWithoutUserInput
+  creditLedgerEntries?: Prisma.CreditLedgerUncheckedCreateNestedManyWithoutUserInput
+  creditBalance?: Prisma.CreditBalanceUncheckedCreateNestedOneWithoutUserInput
+  featureResults?: Prisma.FeatureResultUncheckedCreateNestedManyWithoutUserInput
   adminActionsPerformed?: Prisma.AdminActionUncheckedCreateNestedManyWithoutAdminUserInput
   adminActionsReceived?: Prisma.AdminActionUncheckedCreateNestedManyWithoutTargetUserInput
   riskSnapshots?: Prisma.RiskSnapshotUncheckedCreateNestedManyWithoutGeneratedByInput
@@ -2328,6 +2985,9 @@ export type UserUpdateWithoutAuditLogsInput = {
   payments?: Prisma.PaymentUpdateManyWithoutUserNestedInput
   invoices?: Prisma.BillingInvoiceUpdateManyWithoutUserNestedInput
   consultations?: Prisma.ConsultationUpdateManyWithoutUserNestedInput
+  creditLedgerEntries?: Prisma.CreditLedgerUpdateManyWithoutUserNestedInput
+  creditBalance?: Prisma.CreditBalanceUpdateOneWithoutUserNestedInput
+  featureResults?: Prisma.FeatureResultUpdateManyWithoutUserNestedInput
   adminActionsPerformed?: Prisma.AdminActionUpdateManyWithoutAdminUserNestedInput
   adminActionsReceived?: Prisma.AdminActionUpdateManyWithoutTargetUserNestedInput
   riskSnapshots?: Prisma.RiskSnapshotUpdateManyWithoutGeneratedByNestedInput
@@ -2362,6 +3022,9 @@ export type UserUncheckedUpdateWithoutAuditLogsInput = {
   payments?: Prisma.PaymentUncheckedUpdateManyWithoutUserNestedInput
   invoices?: Prisma.BillingInvoiceUncheckedUpdateManyWithoutUserNestedInput
   consultations?: Prisma.ConsultationUncheckedUpdateManyWithoutUserNestedInput
+  creditLedgerEntries?: Prisma.CreditLedgerUncheckedUpdateManyWithoutUserNestedInput
+  creditBalance?: Prisma.CreditBalanceUncheckedUpdateOneWithoutUserNestedInput
+  featureResults?: Prisma.FeatureResultUncheckedUpdateManyWithoutUserNestedInput
   adminActionsPerformed?: Prisma.AdminActionUncheckedUpdateManyWithoutAdminUserNestedInput
   adminActionsReceived?: Prisma.AdminActionUncheckedUpdateManyWithoutTargetUserNestedInput
   riskSnapshots?: Prisma.RiskSnapshotUncheckedUpdateManyWithoutGeneratedByNestedInput
@@ -2396,6 +3059,9 @@ export type UserCreateWithoutAdminActionsPerformedInput = {
   payments?: Prisma.PaymentCreateNestedManyWithoutUserInput
   invoices?: Prisma.BillingInvoiceCreateNestedManyWithoutUserInput
   consultations?: Prisma.ConsultationCreateNestedManyWithoutUserInput
+  creditLedgerEntries?: Prisma.CreditLedgerCreateNestedManyWithoutUserInput
+  creditBalance?: Prisma.CreditBalanceCreateNestedOneWithoutUserInput
+  featureResults?: Prisma.FeatureResultCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
   adminActionsReceived?: Prisma.AdminActionCreateNestedManyWithoutTargetUserInput
   riskSnapshots?: Prisma.RiskSnapshotCreateNestedManyWithoutGeneratedByInput
@@ -2430,6 +3096,9 @@ export type UserUncheckedCreateWithoutAdminActionsPerformedInput = {
   payments?: Prisma.PaymentUncheckedCreateNestedManyWithoutUserInput
   invoices?: Prisma.BillingInvoiceUncheckedCreateNestedManyWithoutUserInput
   consultations?: Prisma.ConsultationUncheckedCreateNestedManyWithoutUserInput
+  creditLedgerEntries?: Prisma.CreditLedgerUncheckedCreateNestedManyWithoutUserInput
+  creditBalance?: Prisma.CreditBalanceUncheckedCreateNestedOneWithoutUserInput
+  featureResults?: Prisma.FeatureResultUncheckedCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
   adminActionsReceived?: Prisma.AdminActionUncheckedCreateNestedManyWithoutTargetUserInput
   riskSnapshots?: Prisma.RiskSnapshotUncheckedCreateNestedManyWithoutGeneratedByInput
@@ -2469,6 +3138,9 @@ export type UserCreateWithoutAdminActionsReceivedInput = {
   payments?: Prisma.PaymentCreateNestedManyWithoutUserInput
   invoices?: Prisma.BillingInvoiceCreateNestedManyWithoutUserInput
   consultations?: Prisma.ConsultationCreateNestedManyWithoutUserInput
+  creditLedgerEntries?: Prisma.CreditLedgerCreateNestedManyWithoutUserInput
+  creditBalance?: Prisma.CreditBalanceCreateNestedOneWithoutUserInput
+  featureResults?: Prisma.FeatureResultCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
   adminActionsPerformed?: Prisma.AdminActionCreateNestedManyWithoutAdminUserInput
   riskSnapshots?: Prisma.RiskSnapshotCreateNestedManyWithoutGeneratedByInput
@@ -2503,6 +3175,9 @@ export type UserUncheckedCreateWithoutAdminActionsReceivedInput = {
   payments?: Prisma.PaymentUncheckedCreateNestedManyWithoutUserInput
   invoices?: Prisma.BillingInvoiceUncheckedCreateNestedManyWithoutUserInput
   consultations?: Prisma.ConsultationUncheckedCreateNestedManyWithoutUserInput
+  creditLedgerEntries?: Prisma.CreditLedgerUncheckedCreateNestedManyWithoutUserInput
+  creditBalance?: Prisma.CreditBalanceUncheckedCreateNestedOneWithoutUserInput
+  featureResults?: Prisma.FeatureResultUncheckedCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
   adminActionsPerformed?: Prisma.AdminActionUncheckedCreateNestedManyWithoutAdminUserInput
   riskSnapshots?: Prisma.RiskSnapshotUncheckedCreateNestedManyWithoutGeneratedByInput
@@ -2553,6 +3228,9 @@ export type UserUpdateWithoutAdminActionsPerformedInput = {
   payments?: Prisma.PaymentUpdateManyWithoutUserNestedInput
   invoices?: Prisma.BillingInvoiceUpdateManyWithoutUserNestedInput
   consultations?: Prisma.ConsultationUpdateManyWithoutUserNestedInput
+  creditLedgerEntries?: Prisma.CreditLedgerUpdateManyWithoutUserNestedInput
+  creditBalance?: Prisma.CreditBalanceUpdateOneWithoutUserNestedInput
+  featureResults?: Prisma.FeatureResultUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
   adminActionsReceived?: Prisma.AdminActionUpdateManyWithoutTargetUserNestedInput
   riskSnapshots?: Prisma.RiskSnapshotUpdateManyWithoutGeneratedByNestedInput
@@ -2587,6 +3265,9 @@ export type UserUncheckedUpdateWithoutAdminActionsPerformedInput = {
   payments?: Prisma.PaymentUncheckedUpdateManyWithoutUserNestedInput
   invoices?: Prisma.BillingInvoiceUncheckedUpdateManyWithoutUserNestedInput
   consultations?: Prisma.ConsultationUncheckedUpdateManyWithoutUserNestedInput
+  creditLedgerEntries?: Prisma.CreditLedgerUncheckedUpdateManyWithoutUserNestedInput
+  creditBalance?: Prisma.CreditBalanceUncheckedUpdateOneWithoutUserNestedInput
+  featureResults?: Prisma.FeatureResultUncheckedUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
   adminActionsReceived?: Prisma.AdminActionUncheckedUpdateManyWithoutTargetUserNestedInput
   riskSnapshots?: Prisma.RiskSnapshotUncheckedUpdateManyWithoutGeneratedByNestedInput
@@ -2632,6 +3313,9 @@ export type UserUpdateWithoutAdminActionsReceivedInput = {
   payments?: Prisma.PaymentUpdateManyWithoutUserNestedInput
   invoices?: Prisma.BillingInvoiceUpdateManyWithoutUserNestedInput
   consultations?: Prisma.ConsultationUpdateManyWithoutUserNestedInput
+  creditLedgerEntries?: Prisma.CreditLedgerUpdateManyWithoutUserNestedInput
+  creditBalance?: Prisma.CreditBalanceUpdateOneWithoutUserNestedInput
+  featureResults?: Prisma.FeatureResultUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
   adminActionsPerformed?: Prisma.AdminActionUpdateManyWithoutAdminUserNestedInput
   riskSnapshots?: Prisma.RiskSnapshotUpdateManyWithoutGeneratedByNestedInput
@@ -2666,6 +3350,9 @@ export type UserUncheckedUpdateWithoutAdminActionsReceivedInput = {
   payments?: Prisma.PaymentUncheckedUpdateManyWithoutUserNestedInput
   invoices?: Prisma.BillingInvoiceUncheckedUpdateManyWithoutUserNestedInput
   consultations?: Prisma.ConsultationUncheckedUpdateManyWithoutUserNestedInput
+  creditLedgerEntries?: Prisma.CreditLedgerUncheckedUpdateManyWithoutUserNestedInput
+  creditBalance?: Prisma.CreditBalanceUncheckedUpdateOneWithoutUserNestedInput
+  featureResults?: Prisma.FeatureResultUncheckedUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
   adminActionsPerformed?: Prisma.AdminActionUncheckedUpdateManyWithoutAdminUserNestedInput
   riskSnapshots?: Prisma.RiskSnapshotUncheckedUpdateManyWithoutGeneratedByNestedInput
@@ -2700,6 +3387,9 @@ export type UserCreateWithoutRiskSnapshotsInput = {
   payments?: Prisma.PaymentCreateNestedManyWithoutUserInput
   invoices?: Prisma.BillingInvoiceCreateNestedManyWithoutUserInput
   consultations?: Prisma.ConsultationCreateNestedManyWithoutUserInput
+  creditLedgerEntries?: Prisma.CreditLedgerCreateNestedManyWithoutUserInput
+  creditBalance?: Prisma.CreditBalanceCreateNestedOneWithoutUserInput
+  featureResults?: Prisma.FeatureResultCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
   adminActionsPerformed?: Prisma.AdminActionCreateNestedManyWithoutAdminUserInput
   adminActionsReceived?: Prisma.AdminActionCreateNestedManyWithoutTargetUserInput
@@ -2734,6 +3424,9 @@ export type UserUncheckedCreateWithoutRiskSnapshotsInput = {
   payments?: Prisma.PaymentUncheckedCreateNestedManyWithoutUserInput
   invoices?: Prisma.BillingInvoiceUncheckedCreateNestedManyWithoutUserInput
   consultations?: Prisma.ConsultationUncheckedCreateNestedManyWithoutUserInput
+  creditLedgerEntries?: Prisma.CreditLedgerUncheckedCreateNestedManyWithoutUserInput
+  creditBalance?: Prisma.CreditBalanceUncheckedCreateNestedOneWithoutUserInput
+  featureResults?: Prisma.FeatureResultUncheckedCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
   adminActionsPerformed?: Prisma.AdminActionUncheckedCreateNestedManyWithoutAdminUserInput
   adminActionsReceived?: Prisma.AdminActionUncheckedCreateNestedManyWithoutTargetUserInput
@@ -2784,6 +3477,9 @@ export type UserUpdateWithoutRiskSnapshotsInput = {
   payments?: Prisma.PaymentUpdateManyWithoutUserNestedInput
   invoices?: Prisma.BillingInvoiceUpdateManyWithoutUserNestedInput
   consultations?: Prisma.ConsultationUpdateManyWithoutUserNestedInput
+  creditLedgerEntries?: Prisma.CreditLedgerUpdateManyWithoutUserNestedInput
+  creditBalance?: Prisma.CreditBalanceUpdateOneWithoutUserNestedInput
+  featureResults?: Prisma.FeatureResultUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
   adminActionsPerformed?: Prisma.AdminActionUpdateManyWithoutAdminUserNestedInput
   adminActionsReceived?: Prisma.AdminActionUpdateManyWithoutTargetUserNestedInput
@@ -2818,6 +3514,9 @@ export type UserUncheckedUpdateWithoutRiskSnapshotsInput = {
   payments?: Prisma.PaymentUncheckedUpdateManyWithoutUserNestedInput
   invoices?: Prisma.BillingInvoiceUncheckedUpdateManyWithoutUserNestedInput
   consultations?: Prisma.ConsultationUncheckedUpdateManyWithoutUserNestedInput
+  creditLedgerEntries?: Prisma.CreditLedgerUncheckedUpdateManyWithoutUserNestedInput
+  creditBalance?: Prisma.CreditBalanceUncheckedUpdateOneWithoutUserNestedInput
+  featureResults?: Prisma.FeatureResultUncheckedUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
   adminActionsPerformed?: Prisma.AdminActionUncheckedUpdateManyWithoutAdminUserNestedInput
   adminActionsReceived?: Prisma.AdminActionUncheckedUpdateManyWithoutTargetUserNestedInput
@@ -2837,6 +3536,8 @@ export type UserCountOutputType = {
   payments: number
   invoices: number
   consultations: number
+  creditLedgerEntries: number
+  featureResults: number
   auditLogs: number
   adminActionsPerformed: number
   adminActionsReceived: number
@@ -2852,6 +3553,8 @@ export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   payments?: boolean | UserCountOutputTypeCountPaymentsArgs
   invoices?: boolean | UserCountOutputTypeCountInvoicesArgs
   consultations?: boolean | UserCountOutputTypeCountConsultationsArgs
+  creditLedgerEntries?: boolean | UserCountOutputTypeCountCreditLedgerEntriesArgs
+  featureResults?: boolean | UserCountOutputTypeCountFeatureResultsArgs
   auditLogs?: boolean | UserCountOutputTypeCountAuditLogsArgs
   adminActionsPerformed?: boolean | UserCountOutputTypeCountAdminActionsPerformedArgs
   adminActionsReceived?: boolean | UserCountOutputTypeCountAdminActionsReceivedArgs
@@ -2927,6 +3630,20 @@ export type UserCountOutputTypeCountConsultationsArgs<ExtArgs extends runtime.Ty
 /**
  * UserCountOutputType without action
  */
+export type UserCountOutputTypeCountCreditLedgerEntriesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.CreditLedgerWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountFeatureResultsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.FeatureResultWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
 export type UserCountOutputTypeCountAuditLogsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.AuditLogWhereInput
 }
@@ -2982,6 +3699,9 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   payments?: boolean | Prisma.User$paymentsArgs<ExtArgs>
   invoices?: boolean | Prisma.User$invoicesArgs<ExtArgs>
   consultations?: boolean | Prisma.User$consultationsArgs<ExtArgs>
+  creditLedgerEntries?: boolean | Prisma.User$creditLedgerEntriesArgs<ExtArgs>
+  creditBalance?: boolean | Prisma.User$creditBalanceArgs<ExtArgs>
+  featureResults?: boolean | Prisma.User$featureResultsArgs<ExtArgs>
   auditLogs?: boolean | Prisma.User$auditLogsArgs<ExtArgs>
   adminActionsPerformed?: boolean | Prisma.User$adminActionsPerformedArgs<ExtArgs>
   adminActionsReceived?: boolean | Prisma.User$adminActionsReceivedArgs<ExtArgs>
@@ -3068,6 +3788,9 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   payments?: boolean | Prisma.User$paymentsArgs<ExtArgs>
   invoices?: boolean | Prisma.User$invoicesArgs<ExtArgs>
   consultations?: boolean | Prisma.User$consultationsArgs<ExtArgs>
+  creditLedgerEntries?: boolean | Prisma.User$creditLedgerEntriesArgs<ExtArgs>
+  creditBalance?: boolean | Prisma.User$creditBalanceArgs<ExtArgs>
+  featureResults?: boolean | Prisma.User$featureResultsArgs<ExtArgs>
   auditLogs?: boolean | Prisma.User$auditLogsArgs<ExtArgs>
   adminActionsPerformed?: boolean | Prisma.User$adminActionsPerformedArgs<ExtArgs>
   adminActionsReceived?: boolean | Prisma.User$adminActionsReceivedArgs<ExtArgs>
@@ -3088,6 +3811,9 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     payments: Prisma.$PaymentPayload<ExtArgs>[]
     invoices: Prisma.$BillingInvoicePayload<ExtArgs>[]
     consultations: Prisma.$ConsultationPayload<ExtArgs>[]
+    creditLedgerEntries: Prisma.$CreditLedgerPayload<ExtArgs>[]
+    creditBalance: Prisma.$CreditBalancePayload<ExtArgs> | null
+    featureResults: Prisma.$FeatureResultPayload<ExtArgs>[]
     auditLogs: Prisma.$AuditLogPayload<ExtArgs>[]
     adminActionsPerformed: Prisma.$AdminActionPayload<ExtArgs>[]
     adminActionsReceived: Prisma.$AdminActionPayload<ExtArgs>[]
@@ -3516,6 +4242,9 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   payments<T extends Prisma.User$paymentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$paymentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PaymentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   invoices<T extends Prisma.User$invoicesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$invoicesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BillingInvoicePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   consultations<T extends Prisma.User$consultationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$consultationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ConsultationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  creditLedgerEntries<T extends Prisma.User$creditLedgerEntriesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$creditLedgerEntriesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CreditLedgerPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  creditBalance<T extends Prisma.User$creditBalanceArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$creditBalanceArgs<ExtArgs>>): Prisma.Prisma__CreditBalanceClient<runtime.Types.Result.GetResult<Prisma.$CreditBalancePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  featureResults<T extends Prisma.User$featureResultsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$featureResultsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FeatureResultPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   auditLogs<T extends Prisma.User$auditLogsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$auditLogsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AuditLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   adminActionsPerformed<T extends Prisma.User$adminActionsPerformedArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$adminActionsPerformedArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AdminActionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   adminActionsReceived<T extends Prisma.User$adminActionsReceivedArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$adminActionsReceivedArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AdminActionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -4151,6 +4880,73 @@ export type User$consultationsArgs<ExtArgs extends runtime.Types.Extensions.Inte
   take?: number
   skip?: number
   distinct?: Prisma.ConsultationScalarFieldEnum | Prisma.ConsultationScalarFieldEnum[]
+}
+
+/**
+ * User.creditLedgerEntries
+ */
+export type User$creditLedgerEntriesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the CreditLedger
+   */
+  select?: Prisma.CreditLedgerSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the CreditLedger
+   */
+  omit?: Prisma.CreditLedgerOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.CreditLedgerInclude<ExtArgs> | null
+  where?: Prisma.CreditLedgerWhereInput
+  orderBy?: Prisma.CreditLedgerOrderByWithRelationInput | Prisma.CreditLedgerOrderByWithRelationInput[]
+  cursor?: Prisma.CreditLedgerWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.CreditLedgerScalarFieldEnum | Prisma.CreditLedgerScalarFieldEnum[]
+}
+
+/**
+ * User.creditBalance
+ */
+export type User$creditBalanceArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the CreditBalance
+   */
+  select?: Prisma.CreditBalanceSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the CreditBalance
+   */
+  omit?: Prisma.CreditBalanceOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.CreditBalanceInclude<ExtArgs> | null
+  where?: Prisma.CreditBalanceWhereInput
+}
+
+/**
+ * User.featureResults
+ */
+export type User$featureResultsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the FeatureResult
+   */
+  select?: Prisma.FeatureResultSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the FeatureResult
+   */
+  omit?: Prisma.FeatureResultOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.FeatureResultInclude<ExtArgs> | null
+  where?: Prisma.FeatureResultWhereInput
+  orderBy?: Prisma.FeatureResultOrderByWithRelationInput | Prisma.FeatureResultOrderByWithRelationInput[]
+  cursor?: Prisma.FeatureResultWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.FeatureResultScalarFieldEnum | Prisma.FeatureResultScalarFieldEnum[]
 }
 
 /**

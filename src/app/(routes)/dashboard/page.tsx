@@ -84,6 +84,20 @@ export default async function Dashboard() {
 
       <HistoryList />
       <DoctorAgentList />
+      <div className='mx-4 mt-8 rounded-xl border bg-card p-4 shadow-sm'>
+        <h3 className='text-lg font-semibold'>Need advanced one-off analysis?</h3>
+        <p className='mt-1 text-sm text-muted-foreground'>
+          Open PAYG tools for symptom deep scans, lab explainers, referral drafting, and export.
+        </p>
+        <div className='mt-3'>
+          <Link
+            href='/dashboard/tools'
+            className='inline-flex rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground'
+          >
+            Open PAYG Tools
+          </Link>
+        </div>
+      </div>
       <ExitIntentLeadCapture
         context='consultation'
         title='Before you go, get our symptom note template'

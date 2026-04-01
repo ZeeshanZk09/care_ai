@@ -76,10 +76,45 @@ model User {
   payments              Payment[]
   invoices              BillingInvoice[]
   consultations         Consultation[]
+  creditLedgerEntries   CreditLedger[]
+  creditBalance         CreditBalance?
+  featureResults        FeatureResult[]
   auditLogs             AuditLog[]
   adminActionsPerformed AdminAction[] @relation("AdminActor")
   adminActionsReceived  AdminAction[] @relation("AdminTarget")
   riskSnapshots         RiskSnapshot[] @relation("RiskGeneratedBy")
+}
+
+model CreditLedger {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  delta      Int
+  reason     String
+  featureKey String?
+  meta       Json?
+  createdAt  DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model CreditBalance {
+  userId    String   @id
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balance   Int      @default(0)
+  updatedAt DateTime @updatedAt
+}
+
+model FeatureResult {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  featureKey String
+  inputHash  String
+  result     Json
+  createdAt  DateTime @default(now())
+
+  @@index([userId, featureKey, createdAt])
 }
 
 model Account {

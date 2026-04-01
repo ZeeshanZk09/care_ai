@@ -6,7 +6,7 @@ declare global {
 }
 
 export const getStripeClient = (): Stripe => {
-  const { STRIPE_SECRET_KEY: secretKey } = requireStripeEnv();
+  const { NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: secretKey } = requireStripeEnv();
 
   if (global.stripeClient) {
     return global.stripeClient;

@@ -13,6 +13,7 @@ export const metadata = buildMetadata({
 const navItems = [
   { href: '/admin/users', label: 'Users' },
   { href: '/admin/billing', label: 'Billing' },
+  { href: '/admin/credits', label: 'Credits' },
   { href: '/admin/logs', label: 'Logs' },
   { href: '/admin/risk', label: 'Risk' },
 ];
