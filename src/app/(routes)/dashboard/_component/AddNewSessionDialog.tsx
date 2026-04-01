@@ -21,6 +21,7 @@ import { toast } from 'sonner';
 
 type UpgradePromptPayload = {
   step: 1 | 2 | 3;
+  variant: 'DISCOUNT' | 'FEATURE_UNLOCK';
   title: string;
   message: string;
   ctaLabel: string;
@@ -37,6 +38,7 @@ const parseUpgradePrompt = (value: unknown): UpgradePromptPayload | null => {
   const prompt = value as Partial<UpgradePromptPayload>;
   if (
     (prompt.step !== 1 && prompt.step !== 2 && prompt.step !== 3) ||
+    (prompt.variant !== 'DISCOUNT' && prompt.variant !== 'FEATURE_UNLOCK') ||
     typeof prompt.title !== 'string' ||
     typeof prompt.message !== 'string' ||
     typeof prompt.ctaLabel !== 'string' ||
@@ -49,6 +51,7 @@ const parseUpgradePrompt = (value: unknown): UpgradePromptPayload | null => {
 
   return {
     step: prompt.step,
+    variant: prompt.variant,
     title: prompt.title,
     message: prompt.message,
     ctaLabel: prompt.ctaLabel,
@@ -56,6 +59,26 @@ const parseUpgradePrompt = (value: unknown): UpgradePromptPayload | null => {
     discountCode: prompt.discountCode,
     validDays: prompt.validDays,
   };
+};
+
+const showUpgradePromptToast = (
+  router: ReturnType<typeof useRouter>,
+  prompt: UpgradePromptPayload,
+) => {
+  const variantCopy =
+    prompt.variant === 'DISCOUNT'
+      ? `Use code ${prompt.discountCode} within ${prompt.validDays} days.`
+      : 'Upgrade to unlock premium model quality and comprehensive reports.';
+
+  toast(prompt.title, {
+    description: `${prompt.message} ${variantCopy}`,
+    action: {
+      label: prompt.ctaLabel,
+      onClick: () => {
+        router.push(prompt.ctaHref);
+      },
+    },
+  });
 };
 
 export function AddNewSessionDialog() {
@@ -249,6 +272,10 @@ export function DialogBody({
         setLoading(false);
         const errorBody = await response.json().catch(() => null);
         const message = errorBody?.error || 'Failed to start consultation. Please try again.';
+        const upgradePrompt = parseUpgradePrompt(errorBody?.upgradePrompt);
+        if (upgradePrompt) {
+          showUpgradePromptToast(router, upgradePrompt);
+        }
         console.error('Error starting consultation:', message);
         toast.error(message);
         return;
@@ -259,15 +286,7 @@ export function DialogBody({
 
       const upgradePrompt = parseUpgradePrompt(result?.upgradePrompt);
       if (upgradePrompt) {
-        toast(upgradePrompt.title, {
-          description: `${upgradePrompt.message} Use code ${upgradePrompt.discountCode} within ${upgradePrompt.validDays} days.`,
-          action: {
-            label: upgradePrompt.ctaLabel,
-            onClick: () => {
-              router.push(upgradePrompt.ctaHref);
-            },
-          },
-        });
+        showUpgradePromptToast(router, upgradePrompt);
       }
 
       router.push(`/dashboard/medical-agent/${result.sessionId}`);

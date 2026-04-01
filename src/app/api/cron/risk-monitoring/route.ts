@@ -10,15 +10,17 @@ import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
 const MRR_THRESHOLD_CENTS = 20_000;
-const MRR_ZERO_ESCALATION_HOURS = 72;
+const MRR_ZERO_DAYS_ESCALATION_THRESHOLD = 3;
 const FAILED_LOGIN_SPIKE_THRESHOLD = 10;
 const FAILED_LOGIN_CRITICAL_THRESHOLD = 20;
+const FAILED_LOGIN_GLOBAL_24H_THRESHOLD = 20;
 const FAILED_LOGIN_WINDOW_MS = 10 * 60 * 1000;
 const FAILED_LOGIN_RETENTION_DAYS = 30;
 const WEEKLY_CONSULTATION_MIN_THRESHOLD = 5;
 const WEEKLY_CONSULTATION_DROP_RATIO = 0.5;
 const ACTIVE_BILLING_STATUSES = ["ACTIVE", "TRIALING", "PAST_DUE"] as const;
 const AGENT_ID = "GPT-5.3-Codex";
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 const getCurrentMonthStartUtc = (date = new Date()) => {
   return new Date(
@@ -35,6 +37,74 @@ const getWeekStartUtc = (date = new Date(), weeksAgo = 0) => {
   utc.setUTCDate(utc.getUTCDate() - diffToMonday - weeksAgo * 7);
   utc.setUTCHours(0, 0, 0, 0);
   return utc;
+};
+
+type SnapshotPoint = {
+  dateKey: string;
+  mrrCents: number;
+};
+
+const toUtcDateKey = (date = new Date()) => {
+  return date.toISOString().slice(0, 10);
+};
+
+const parseSnapshotPoint = (
+  metadata: unknown,
+  fallbackDate: Date,
+): SnapshotPoint | null => {
+  if (!metadata || typeof metadata !== "object") {
+    return null;
+  }
+
+  const record = metadata as { snapshotDate?: unknown; mrrCents?: unknown };
+  const snapshotDate =
+    typeof record.snapshotDate === "string"
+      ? record.snapshotDate
+      : toUtcDateKey(fallbackDate);
+  const mrrCents = Number(record.mrrCents);
+
+  if (!Number.isFinite(mrrCents)) {
+    return null;
+  }
+
+  return {
+    dateKey: snapshotDate,
+    mrrCents,
+  };
+};
+
+const calculateConsecutiveZeroDays = (
+  history: SnapshotPoint[],
+  now: Date,
+  currentMrrCents: number,
+) => {
+  const snapshotByDate = new Map<string, number>();
+  for (const point of history) {
+    if (!snapshotByDate.has(point.dateKey)) {
+      snapshotByDate.set(point.dateKey, point.mrrCents);
+    }
+  }
+
+  snapshotByDate.set(toUtcDateKey(now), currentMrrCents);
+
+  let streak = 0;
+  for (let offset = 0; offset < 14; offset += 1) {
+    const targetDate = new Date(now.getTime() - offset * DAY_MS);
+    const key = toUtcDateKey(targetDate);
+    const value = snapshotByDate.get(key);
+
+    if (value === undefined) {
+      break;
+    }
+
+    if (value !== 0) {
+      break;
+    }
+
+    streak += 1;
+  }
+
+  return streak;
 };
 
 const isAuthorizedCronRequest = (request: Request) => {
@@ -72,6 +142,8 @@ const postHandler = async (request: Request) => {
       consultationPreviousWeek,
       paidUsers,
       activeBillingUsers,
+      recentMrrSnapshots,
+      failedLogins24h,
     ] = await Promise.all([
       prisma.payment.aggregate({
         where: {
@@ -141,10 +213,55 @@ const postHandler = async (request: Request) => {
           userId: true,
         },
       }),
+      prisma.auditLog.findMany({
+        where: {
+          action: "system.mrr.snapshot.daily",
+          createdAt: {
+            gte: new Date(Date.now() - 14 * DAY_MS),
+          },
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+        take: 20,
+        select: {
+          metadata: true,
+          createdAt: true,
+        },
+      }),
+      prisma.auditLog.count({
+        where: {
+          action: "auth.signin.failed",
+          createdAt: {
+            gte: new Date(Date.now() - DAY_MS),
+          },
+        },
+      }),
     ]);
 
     const mrrCents = mrrAggregate._sum.amount ?? 0;
     const mrrThresholdMet = mrrCents >= MRR_THRESHOLD_CENTS;
+    const snapshotHistory = recentMrrSnapshots
+      .map((row) => parseSnapshotPoint(row.metadata, row.createdAt))
+      .filter((row): row is SnapshotPoint => Boolean(row));
+    const mrrZeroConsecutiveDays = calculateConsecutiveZeroDays(
+      snapshotHistory,
+      now,
+      mrrCents,
+    );
+
+    await writeAuditLog({
+      action: "system.mrr.snapshot.daily",
+      metadata: {
+        snapshotDate: toUtcDateKey(now),
+        mrrCents,
+        mrrThresholdCents: MRR_THRESHOLD_CENTS,
+        mrrThresholdMet,
+        consecutiveZeroDays: mrrZeroConsecutiveDays,
+        occurredAt,
+        agentId: AGENT_ID,
+      },
+    });
 
     await writeAuditLog({
       action: "system.mrr.metric.daily_checked",
@@ -152,6 +269,7 @@ const postHandler = async (request: Request) => {
         mrrCents,
         mrrThresholdCents: MRR_THRESHOLD_CENTS,
         mrrThresholdMet,
+        consecutiveZeroDays: mrrZeroConsecutiveDays,
         occurredAt,
         agentId: AGENT_ID,
       },
@@ -176,41 +294,32 @@ const postHandler = async (request: Request) => {
         metadata: {
           mrrCents,
           mrrThresholdCents: MRR_THRESHOLD_CENTS,
+          consecutiveZeroDays: mrrZeroConsecutiveDays,
           occurredAt,
           agentId: AGENT_ID,
         },
       });
 
-      const mrrAlertsInWindow = await prisma.auditLog.count({
-        where: {
-          action: "system.alert.mrr_zero.triggered",
-          createdAt: {
-            gte: new Date(
-              Date.now() - MRR_ZERO_ESCALATION_HOURS * 60 * 60 * 1000,
-            ),
-          },
-        },
-      });
-
-      if (mrrAlertsInWindow >= 3) {
+      if (mrrZeroConsecutiveDays >= MRR_ZERO_DAYS_ESCALATION_THRESHOLD) {
         mrrEscalationRequired = true;
 
         await writeAuditLog({
           action: "revenue.escalation.required",
           metadata: {
-            reason: "MRR_NOT_RECOVERED_72H",
-            mrrAlertsInWindow,
+            reason: "MRR_ZERO_FOR_3_CONSECUTIVE_DAYS",
+            consecutiveZeroDays: mrrZeroConsecutiveDays,
             occurredAt,
             agentId: AGENT_ID,
           },
         });
 
         await notifyRevenueAlert({
-          subject: "CareAI escalation required: MRR not recovered in 72 hours",
+          subject:
+            "CareAI escalation required: MRR remained $0 for 3 consecutive days",
           summary:
-            "MRR has remained at $0 for at least 72 hours. Human operator escalation is required.",
+            "MRR has remained at $0 for three consecutive days. Human operator escalation is required.",
           metadata: {
-            mrrAlertsInWindow,
+            consecutiveZeroDays: mrrZeroConsecutiveDays,
             mrrCents,
             occurredAt,
             agentId: AGENT_ID,
@@ -325,6 +434,30 @@ const postHandler = async (request: Request) => {
       });
     }
 
+    if (failedLogins24h > FAILED_LOGIN_GLOBAL_24H_THRESHOLD) {
+      await writeAuditLog({
+        action: "security.monitoring.failed_logins_24h.threshold_exceeded",
+        metadata: {
+          failedLogins24h,
+          threshold: FAILED_LOGIN_GLOBAL_24H_THRESHOLD,
+          occurredAt,
+          agentId: AGENT_ID,
+        },
+      });
+
+      await notifySecurityAlert({
+        subject: "CareAI security alert: 24h failed-login threshold exceeded",
+        summary:
+          "Global failed sign-ins exceeded the 24-hour threshold. Challenge controls and lockout checks should be validated.",
+        metadata: {
+          failedLogins24h,
+          threshold: FAILED_LOGIN_GLOBAL_24H_THRESHOLD,
+          occurredAt,
+          agentId: AGENT_ID,
+        },
+      });
+    }
+
     let consultationDropRatio = 0;
     if (consultationPreviousWeek > 0) {
       consultationDropRatio =
@@ -408,10 +541,13 @@ const postHandler = async (request: Request) => {
         mrrThresholdCents: MRR_THRESHOLD_CENTS,
         thresholdMet: mrrThresholdMet,
         escalationRequired: mrrEscalationRequired,
+        consecutiveZeroDays: mrrZeroConsecutiveDays,
       },
       security: {
         failedLoginSpikes,
         criticalFailedLoginSpikes,
+        failedLogins24h,
+        failedLogins24hThreshold: FAILED_LOGIN_GLOBAL_24H_THRESHOLD,
       },
       billingIntegrity: {
         paidUsersWithoutBilling: paidUsersWithoutBilling.length,

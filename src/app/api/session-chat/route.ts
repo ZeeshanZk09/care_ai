@@ -5,7 +5,13 @@ import {
   consumeConsultationCredit,
   getEntitlementSnapshot,
 } from "@/lib/billing/entitlements";
-import { getUpgradePromptForHighValueAction } from "@/lib/billing/upgrade-prompts";
+import { enforcePlanGate } from "@/lib/billing/plan-gate";
+import {
+  getSessionStartUpgradePrompt,
+  getUpgradePromptForHighValueAction,
+  getUpgradePromptForPlanGate,
+  getUpgradePromptForPlanLimit,
+} from "@/lib/billing/upgrade-prompts";
 import { withApiRequestAudit } from "@/lib/api/request-audit";
 import { getClientIp, getUserAgent, writeAuditLog } from "@/lib/audit";
 import { AIDoctorAgents } from "@/lib/data/list";
@@ -35,6 +41,7 @@ type ConversationMessage = {
 const putPayloadSchema = z.object({
   sessionId: z.string().min(1),
   conversation: z.unknown().optional(),
+  reportTier: z.enum(["STANDARD", "COMPREHENSIVE"]).optional().default("STANDARD"),
 });
 
 const postPayloadSchema = z.object({
@@ -145,6 +152,128 @@ const resolveSelectedDoctor = (selectedDoctor: unknown) => {
   return null;
 };
 
+const buildDeniedConsultationResponse = (
+  access: Awaited<ReturnType<typeof checkConsultationAccess>>,
+) => {
+  const upgradePrompt = getUpgradePromptForPlanLimit(
+    access.planTier,
+    access.consultationsUsed,
+    access.consultationsLimit,
+  );
+
+  const status = upgradePrompt && access.consultationsRemaining === 0 ? 402 : 403;
+
+  return NextResponse.json(
+    {
+      error: access.reason ?? "Consultation access denied.",
+      code: "CONSULTATION_DENIED",
+      upgradePrompt,
+    },
+    { status },
+  );
+};
+
+const buildEntitlementErrorResponse = async (
+  error: EntitlementError,
+  userId: string | null,
+) => {
+  const latestAccess = userId
+    ? await checkConsultationAccess(userId).catch(() => null)
+    : null;
+
+  let upgradePrompt = null;
+  if (error.code === "PAID_PLAN_REQUIRED") {
+    upgradePrompt = getUpgradePromptForPlanGate("PRO", "Specialist consultation");
+  } else if (latestAccess) {
+    upgradePrompt = getUpgradePromptForPlanLimit(
+      latestAccess.planTier,
+      latestAccess.consultationsUsed,
+      latestAccess.consultationsLimit,
+    );
+  }
+
+  const isUpgradeRequired =
+    error.code === "PAID_PLAN_REQUIRED" ||
+    error.code === "CONSULTATION_LIMIT_REACHED" ||
+    error.code === "CONSULTATION_DENIED";
+
+  return NextResponse.json(
+    {
+      error: error.message,
+      code: error.code,
+      upgradePrompt,
+    },
+    { status: isUpgradeRequired ? 402 : error.statusCode },
+  );
+};
+
+const executeConsultationStart = async (
+  request: Request,
+  userId: string,
+  notes: string,
+  output: unknown,
+  canonicalDoctor: NonNullable<ReturnType<typeof resolveSelectedDoctor>>,
+) => {
+  const access = await checkConsultationAccess(userId);
+  if (access.status === "DENIED") {
+    return buildDeniedConsultationResponse(access);
+  }
+
+  const usageSnapshot = await consumeConsultationCredit(userId, {
+    requiresPaidPlan: Boolean(canonicalDoctor.subscriptionRequired),
+  });
+
+  const milestoneUpgradePrompt = getUpgradePromptForHighValueAction({
+    plan: usageSnapshot.plan,
+    consultationsUsed: usageSnapshot.consultationsUsed,
+    action: "CONSULTATION",
+  });
+  const sessionStartUpgradePrompt = getSessionStartUpgradePrompt(
+    usageSnapshot.plan,
+    usageSnapshot.consultationsRemaining,
+  );
+
+  const upgradePrompt = milestoneUpgradePrompt ?? sessionStartUpgradePrompt;
+
+  const result = await prisma.chatSession.create({
+    data: {
+      userId,
+      sessionId: crypto.randomUUID(),
+      notes,
+      selectedDoctor: toInputJsonValue(canonicalDoctor),
+      conversation: toInputJsonValue({
+        input: notes,
+        output,
+      }),
+      report: null,
+    },
+  });
+
+  await writeAuditLog({
+    userId,
+    action: "consultation.started",
+    ipAddress: getClientIp(request.headers),
+    userAgent: getUserAgent(request.headers),
+    metadata: {
+      sessionId: result.sessionId,
+      planTier: usageSnapshot.plan,
+      specialist: canonicalDoctor.specialist,
+      premiumAccessPending: access.status === "PREMIUM_PENDING",
+      occurredAt: new Date().toISOString(),
+      agentId: AGENT_ID,
+    },
+  });
+
+  return NextResponse.json(
+    {
+      ...result,
+      premiumAccessPending: access.status === "PREMIUM_PENDING",
+      upgradePrompt,
+    },
+    { status: 200 },
+  );
+};
+
 const putHandler = async (request: Request) => {
   try {
     const csrfErrorResponse = enforceCsrfProtection(request);
@@ -173,7 +302,7 @@ const putHandler = async (request: Request) => {
       );
     }
 
-    const { sessionId, conversation } = parsedPayload.data;
+    const { sessionId, conversation, reportTier } = parsedPayload.data;
 
     if (!sessionId) {
       return NextResponse.json(
@@ -201,11 +330,32 @@ const putHandler = async (request: Request) => {
     }
 
     const entitlement = await getEntitlementSnapshot(userId);
+    if (reportTier === "COMPREHENSIVE") {
+      const planGate = enforcePlanGate(
+        entitlement.plan,
+        "PRO",
+        "COMPREHENSIVE_CONSULTATION_REPORT",
+      );
+
+      if (!planGate.allowed) {
+        return NextResponse.json(
+          {
+            ...planGate.payload,
+            upgradePrompt: getUpgradePromptForPlanGate(
+              planGate.payload.requiredPlan,
+              "Comprehensive consultation report",
+            ),
+          },
+          { status: planGate.status },
+        );
+      }
+    }
+
     const normalizedConversation = normalizeConversationMessages(conversation);
 
     let reportText: string | null = null;
     if (normalizedConversation.length > 0) {
-      if (entitlement.plan === "PRO") {
+      if (reportTier === "COMPREHENSIVE" && entitlement.plan === "PRO") {
         reportText = buildProReport(normalizedConversation, chatSession.notes);
       } else if (entitlement.plan === "BASIC") {
         reportText = buildBasicReport(normalizedConversation.length);
@@ -247,6 +397,8 @@ const putHandler = async (request: Request) => {
 };
 
 const postHandler = async (request: Request) => {
+  let resolvedUserId: string | null = null;
+
   try {
     const csrfErrorResponse = enforceCsrfProtection(request);
     if (csrfErrorResponse) {
@@ -255,6 +407,7 @@ const postHandler = async (request: Request) => {
 
     const session = await auth();
     const userId = session?.user?.id;
+    resolvedUserId = userId ?? null;
 
     if (!userId) {
       return NextResponse.json(
@@ -284,80 +437,18 @@ const postHandler = async (request: Request) => {
       );
     }
 
-    try {
-      const access = await checkConsultationAccess(userId);
-      if (access.status === "DENIED") {
-        return NextResponse.json(
-          {
-            error: access.reason ?? "Consultation access denied.",
-            code: "CONSULTATION_DENIED",
-          },
-          { status: 403 },
-        );
-      }
-
-      const usageSnapshot = await consumeConsultationCredit(userId, {
-        requiresPaidPlan: Boolean(canonicalDoctor.subscriptionRequired),
-      });
-
-      const upgradePrompt = getUpgradePromptForHighValueAction({
-        plan: usageSnapshot.plan,
-        consultationsUsed: usageSnapshot.consultationsUsed,
-        action: "CONSULTATION",
-      });
-
-      const result = await prisma.chatSession.create({
-        data: {
-          userId,
-          sessionId: crypto.randomUUID(),
-          notes,
-          selectedDoctor: toInputJsonValue(canonicalDoctor),
-          conversation: toInputJsonValue({
-            input: notes,
-            output,
-          }),
-          report: null,
-        },
-      });
-
-      await writeAuditLog({
-        userId,
-        action: "consultation.started",
-        ipAddress: getClientIp(request.headers),
-        userAgent: getUserAgent(request.headers),
-        metadata: {
-          sessionId: result.sessionId,
-          planTier: usageSnapshot.plan,
-          specialist: canonicalDoctor.specialist,
-          premiumAccessPending: access.status === "PREMIUM_PENDING",
-          occurredAt: new Date().toISOString(),
-          agentId: AGENT_ID,
-        },
-      });
-
-      return NextResponse.json(
-        {
-          ...result,
-          premiumAccessPending: access.status === "PREMIUM_PENDING",
-          upgradePrompt,
-        },
-        { status: 200 },
-      );
-    } catch (error) {
-      if (error instanceof EntitlementError) {
-        return NextResponse.json(
-          { error: error.message, code: error.code },
-          { status: error.statusCode },
-        );
-      }
-
-      console.error("[session-chat] Failed to create chat session:", error);
-      return NextResponse.json(
-        { error: "Database write failed." },
-        { status: 500 },
-      );
-    }
+    return executeConsultationStart(
+      request,
+      userId,
+      notes,
+      output,
+      canonicalDoctor,
+    );
   } catch (error) {
+    if (error instanceof EntitlementError) {
+      return buildEntitlementErrorResponse(error, resolvedUserId);
+    }
+
     console.error("[session-chat] Failed to create chat session:", error);
     return NextResponse.json(
       { error: getErrorMessage(error, "Failed to create chat session.") },
