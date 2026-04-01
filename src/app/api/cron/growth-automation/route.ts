@@ -11,6 +11,7 @@ import {
 import { sendEmail } from '@/lib/mail';
 import prisma from '@/lib/prisma';
 import { isAuthorizedCronRequest } from '@/lib/security/cron';
+import { getUtcMonthStart, getUtcWeekStart } from '@/lib/utils/utc-date';
 import { NextResponse } from 'next/server';
 
 const AGENT_ID = 'GPT-5.3-Codex';
@@ -64,21 +65,8 @@ const getAppBaseUrl = () => {
   return url.replace(/\/+$/, '');
 };
 
-const getCurrentMonthStartUtc = (date = new Date()) => {
-  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1, 0, 0, 0, 0));
-};
-
 const getPreviousMonthStartUtc = (date = new Date()) => {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() - 1, 1, 0, 0, 0, 0));
-};
-
-const getWeekStartUtc = (date = new Date()) => {
-  const utc = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
-  const day = utc.getUTCDay();
-  const diffToMonday = (day + 6) % 7;
-  utc.setUTCDate(utc.getUTCDate() - diffToMonday);
-  utc.setUTCHours(0, 0, 0, 0);
-  return utc;
 };
 
 const getIsoWeek = (date = new Date()) => {
@@ -224,7 +212,7 @@ const dispatchEmail = async (
 };
 
 const sendWeeklyCampaign = async (mode: DispatchMode, occurredAt: string) => {
-  const weekStart = getWeekStartUtc();
+  const weekStart = getUtcWeekStart();
   const alreadySentThisWeek =
     mode === 'CONFIRMED_SEND'
       ? await prisma.auditLog.count({
@@ -603,7 +591,7 @@ const sendWeeklyIncompleteConsultationSummary = async (
   occurredAt: string
 ): Promise<DispatchResult> => {
   const appBaseUrl = getAppBaseUrl();
-  const weekStart = getWeekStartUtc();
+  const weekStart = getUtcWeekStart();
 
   const abandonedEvents = await prisma.auditLog.findMany({
     where: {
@@ -788,7 +776,7 @@ const sendDisengagementSurvey = async (
   mode: DispatchMode,
   occurredAt: string
 ): Promise<DispatchResult> => {
-  const currentMonthStart = getCurrentMonthStartUtc();
+  const currentMonthStart = getUtcMonthStart();
   const previousMonthStart = getPreviousMonthStartUtc();
 
   const [consultedPreviousMonth, consultedCurrentMonth] = await Promise.all([

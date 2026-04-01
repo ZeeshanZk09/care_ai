@@ -2,11 +2,8 @@ import { writeAuditLog } from '@/lib/audit';
 import { withApiRequestAudit } from '@/lib/api/request-audit';
 import prisma from '@/lib/prisma';
 import { isAuthorizedCronRequest } from '@/lib/security/cron';
+import { getUtcMonthStart } from '@/lib/utils/utc-date';
 import { NextResponse } from 'next/server';
-
-const getCurrentCycleStart = (date = new Date()) => {
-  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1, 0, 0, 0, 0));
-};
 
 const postHandler = async (request: Request) => {
   if (!isAuthorizedCronRequest(request)) {
@@ -14,7 +11,7 @@ const postHandler = async (request: Request) => {
   }
 
   try {
-    const cycleStart = getCurrentCycleStart();
+    const cycleStart = getUtcMonthStart();
 
     const usersToReset = await prisma.user.findMany({
       where: {

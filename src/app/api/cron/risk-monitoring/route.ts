@@ -3,6 +3,7 @@ import { withApiRequestAudit } from '@/lib/api/request-audit';
 import { writeAuditLog } from '@/lib/audit';
 import prisma from '@/lib/prisma';
 import { isAuthorizedCronRequest } from '@/lib/security/cron';
+import { getUtcMonthStart, getUtcWeekStart } from '@/lib/utils/utc-date';
 import { NextResponse } from 'next/server';
 
 const MRR_THRESHOLD_CENTS = 20_000;
@@ -17,19 +18,6 @@ const WEEKLY_CONSULTATION_DROP_RATIO = 0.5;
 const ACTIVE_BILLING_STATUSES = ['ACTIVE', 'TRIALING', 'PAST_DUE'] as const;
 const AGENT_ID = 'GPT-5.3-Codex';
 const DAY_MS = 24 * 60 * 60 * 1000;
-
-const getCurrentMonthStartUtc = (date = new Date()) => {
-  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1, 0, 0, 0, 0));
-};
-
-const getWeekStartUtc = (date = new Date(), weeksAgo = 0) => {
-  const utc = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
-  const day = utc.getUTCDay();
-  const diffToMonday = (day + 6) % 7;
-  utc.setUTCDate(utc.getUTCDate() - diffToMonday - weeksAgo * 7);
-  utc.setUTCHours(0, 0, 0, 0);
-  return utc;
-};
 
 type SnapshotPoint = {
   dateKey: string;
@@ -100,9 +88,9 @@ const postHandler = async (request: Request) => {
   }
 
   const now = new Date();
-  const monthStart = getCurrentMonthStartUtc(now);
-  const weekStart = getWeekStartUtc(now);
-  const previousWeekStart = getWeekStartUtc(now, 1);
+  const monthStart = getUtcMonthStart(now);
+  const weekStart = getUtcWeekStart(now);
+  const previousWeekStart = getUtcWeekStart(now, 1);
   const occurredAt = now.toISOString();
 
   try {
