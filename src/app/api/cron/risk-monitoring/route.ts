@@ -1,8 +1,8 @@
 import { notifyGrowthAlert, notifyRevenueAlert, notifySecurityAlert } from '@/lib/alerts';
 import { withApiRequestAudit } from '@/lib/api/request-audit';
 import { writeAuditLog } from '@/lib/audit';
-import { requireCronEnv } from '@/env';
 import prisma from '@/lib/prisma';
+import { isAuthorizedCronRequest } from '@/lib/security/cron';
 import { NextResponse } from 'next/server';
 
 const MRR_THRESHOLD_CENTS = 20_000;
@@ -92,17 +92,6 @@ const calculateConsecutiveZeroDays = (
   }
 
   return streak;
-};
-
-const isAuthorizedCronRequest = (request: Request) => {
-  const configuredSecret = requireCronEnv().CRON_SECRET;
-  if (!configuredSecret) {
-    return false;
-  }
-
-  const authHeader = request.headers.get('authorization');
-  const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
-  return bearerToken === configuredSecret;
 };
 
 const postHandler = async (request: Request) => {

@@ -1,22 +1,11 @@
 import { writeAuditLog } from '@/lib/audit';
-import { requireCronEnv } from '@/env';
 import { withApiRequestAudit } from '@/lib/api/request-audit';
 import prisma from '@/lib/prisma';
+import { isAuthorizedCronRequest } from '@/lib/security/cron';
 import { NextResponse } from 'next/server';
 
 const getCurrentCycleStart = (date = new Date()) => {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1, 0, 0, 0, 0));
-};
-
-const isAuthorizedCronRequest = (request: Request) => {
-  const configuredSecret = requireCronEnv().CRON_SECRET;
-  if (!configuredSecret) {
-    return false;
-  }
-
-  const authHeader = request.headers.get('authorization');
-  const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
-  return bearerToken === configuredSecret;
 };
 
 const postHandler = async (request: Request) => {

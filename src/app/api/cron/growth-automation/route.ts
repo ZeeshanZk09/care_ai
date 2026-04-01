@@ -1,7 +1,6 @@
 import { notifyGrowthAlert } from '@/lib/alerts';
 import { withApiRequestAudit } from '@/lib/api/request-audit';
 import { writeAuditLog } from '@/lib/audit';
-import { requireCronEnv } from '@/env';
 import {
   abandonedConsultationReminderTemplate,
   disengagementSurveyTemplate,
@@ -11,6 +10,7 @@ import {
 } from '@/lib/email-templates';
 import { sendEmail } from '@/lib/mail';
 import prisma from '@/lib/prisma';
+import { isAuthorizedCronRequest } from '@/lib/security/cron';
 import { NextResponse } from 'next/server';
 
 const AGENT_ID = 'GPT-5.3-Codex';
@@ -57,17 +57,6 @@ type AbandonedConsultationEvent = {
   resumeUrl: string;
   stepLabel: string | null;
   createdAt: Date;
-};
-
-const isAuthorizedCronRequest = (request: Request) => {
-  const configuredSecret = requireCronEnv().CRON_SECRET;
-  if (!configuredSecret) {
-    return false;
-  }
-
-  const authHeader = request.headers.get('authorization');
-  const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
-  return bearerToken === configuredSecret;
 };
 
 const getAppBaseUrl = () => {
