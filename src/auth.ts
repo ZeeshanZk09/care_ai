@@ -5,12 +5,26 @@ import Credentials from 'next-auth/providers/credentials';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import { env } from '@/env';
 import prisma from '@/lib/prisma';
+import { notifySecurityAlert } from '@/lib/alerts';
 import { getClientIp, getUserAgent, writeAuditLog } from '@/lib/audit';
-import { consumeRateLimit, resetRateLimit } from '@/lib/security/rate-limit';
+import {
+  clearCaptchaChallenge,
+  consumeRateLimit,
+  getCaptchaChallengePrompt,
+  issueCaptchaChallenge,
+  resetRateLimit,
+  verifyCaptchaChallenge,
+} from '@/lib/security/rate-limit';
 import bcrypt from 'bcryptjs';
 
-const SIGN_IN_WINDOW_MS = 15 * 60 * 1000;
+const SIGN_IN_WINDOW_MS = 10 * 60 * 1000;
 const SIGN_IN_MAX_ATTEMPTS = 5;
+const CAPTCHA_CHALLENGE_TTL_MS = 10 * 60 * 1000;
+const FAILED_LOGIN_ALERT_THRESHOLD = 3;
+const FAILED_LOGIN_ALERT_WINDOW_MS = 5 * 60 * 1000;
+const FAILED_LOGIN_SPIKE_THRESHOLD = 10;
+const AGENT_ID = 'GPT-5.3-Codex';
+const CAPTCHA_ERROR_PREFIX = 'CAPTCHA_REQUIRED|';
 
 const OAUTH_FETCH_RETRY_LIMIT = 2;
 const OAUTH_FETCH_TIMEOUT_MS = 10_000;
@@ -125,6 +139,127 @@ const resilientOAuthFetch: typeof fetch = async (input, init) => {
   throw lastError;
 };
 
+const normalizeEmailValue = (value: unknown) => {
+  if (typeof value !== 'string') {
+    return '';
+  }
+
+  return value.trim().toLowerCase();
+};
+
+const buildCaptchaErrorMessage = (prompt: string, retryAfterSeconds: number) => {
+  return `${CAPTCHA_ERROR_PREFIX}${prompt}|${retryAfterSeconds}`;
+};
+
+type FailedSignInEventInput = {
+  userId?: string | null;
+  email: string;
+  reason: string;
+  ipAddress: string | null;
+  userAgent: string | null;
+};
+
+const recordFailedSignInAttempt = async ({
+  userId,
+  email,
+  reason,
+  ipAddress,
+  userAgent,
+}: FailedSignInEventInput) => {
+  const occurredAt = new Date().toISOString();
+  const normalizedIp = ipAddress ?? 'unknown';
+
+  await writeAuditLog({
+    userId: userId ?? null,
+    action: 'auth.signin.failed',
+    ipAddress,
+    userAgent,
+    metadata: {
+      email,
+      reason,
+      occurredAt,
+      agentId: AGENT_ID,
+    },
+  });
+
+  const alertWindow = consumeRateLimit(
+    `auth:signin:alert:${normalizedIp}`,
+    FAILED_LOGIN_ALERT_THRESHOLD,
+    FAILED_LOGIN_ALERT_WINDOW_MS
+  );
+
+  if (!alertWindow.allowed) {
+    const dispatchWindow = consumeRateLimit(
+      `auth:signin:alert:dispatch:${normalizedIp}`,
+      1,
+      FAILED_LOGIN_ALERT_WINDOW_MS
+    );
+
+    if (dispatchWindow.allowed) {
+      await notifySecurityAlert({
+        subject: 'CareAI security alert: repeated failed logins',
+        summary: `IP ${normalizedIp} exceeded 3 failed logins within 5 minutes.`,
+        ipAddress,
+        userAgent,
+        metadata: {
+          email,
+          reason,
+          failedAttemptsInWindow: alertWindow.count,
+          windowSeconds: Math.floor(FAILED_LOGIN_ALERT_WINDOW_MS / 1000),
+          occurredAt,
+          agentId: AGENT_ID,
+        },
+      });
+    }
+  }
+
+  const escalationWindow = consumeRateLimit(
+    `auth:signin:escalation:${normalizedIp}`,
+    FAILED_LOGIN_SPIKE_THRESHOLD,
+    SIGN_IN_WINDOW_MS
+  );
+
+  if (!escalationWindow.allowed) {
+    const escalationDispatch = consumeRateLimit(
+      `auth:signin:escalation:dispatch:${normalizedIp}`,
+      1,
+      SIGN_IN_WINDOW_MS
+    );
+
+    if (escalationDispatch.allowed) {
+      await writeAuditLog({
+        userId: userId ?? null,
+        action: 'security.escalation.required',
+        ipAddress,
+        userAgent,
+        metadata: {
+          reason: 'FAILED_LOGIN_SPIKE',
+          threshold: FAILED_LOGIN_SPIKE_THRESHOLD,
+          windowSeconds: Math.floor(SIGN_IN_WINDOW_MS / 1000),
+          failedAttemptsInWindow: escalationWindow.count,
+          email,
+          occurredAt,
+          agentId: AGENT_ID,
+        },
+      });
+
+      await notifySecurityAlert({
+        subject: 'CareAI escalation required: login spike detected',
+        summary: `IP ${normalizedIp} exceeded 10 failed logins within 10 minutes. Human operator escalation required.`,
+        ipAddress,
+        userAgent,
+        metadata: {
+          email,
+          reason,
+          failedAttemptsInWindow: escalationWindow.count,
+          occurredAt,
+          agentId: AGENT_ID,
+        },
+      });
+    }
+  }
+};
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: PrismaAdapter(prisma),
   session: {
@@ -151,43 +286,98 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       credentials: {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
+        captchaAnswer: { label: 'Captcha', type: 'text' },
       },
       async authorize(credentials, request) {
         if (!credentials?.email || !credentials?.password) return null;
 
+        const normalizedEmail = normalizeEmailValue(credentials.email);
         const ipAddress = getClientIp(request?.headers ?? null);
         const userAgent = getUserAgent(request?.headers ?? null);
-        const limiterKey = `auth:signin:${ipAddress ?? 'unknown'}`;
+        const normalizedIp = ipAddress ?? 'unknown';
+        const limiterKey = `auth:signin:${normalizedIp}`;
+        const captchaKey = `auth:signin:captcha:${normalizedIp}`;
+        const existingCaptchaPrompt = getCaptchaChallengePrompt(captchaKey);
+
+        if (existingCaptchaPrompt) {
+          const captchaAnswer =
+            typeof credentials.captchaAnswer === 'string' ? credentials.captchaAnswer : '';
+          const captchaVerified = verifyCaptchaChallenge(captchaKey, captchaAnswer);
+
+          if (!captchaVerified) {
+            await writeAuditLog({
+              action: 'auth.signin.captcha_required',
+              ipAddress,
+              userAgent,
+              metadata: {
+                email: normalizedEmail,
+                prompt: existingCaptchaPrompt,
+                occurredAt: new Date().toISOString(),
+                agentId: AGENT_ID,
+              },
+            });
+
+            throw new Error(
+              buildCaptchaErrorMessage(
+                existingCaptchaPrompt,
+                Math.floor(CAPTCHA_CHALLENGE_TTL_MS / 1000)
+              )
+            );
+          }
+
+          resetRateLimit(limiterKey);
+          await writeAuditLog({
+            action: 'auth.signin.captcha_passed',
+            ipAddress,
+            userAgent,
+            metadata: {
+              email: normalizedEmail,
+              occurredAt: new Date().toISOString(),
+              agentId: AGENT_ID,
+            },
+          });
+        }
 
         const limitResult = consumeRateLimit(limiterKey, SIGN_IN_MAX_ATTEMPTS, SIGN_IN_WINDOW_MS);
 
         if (!limitResult.allowed) {
+          const challenge = issueCaptchaChallenge(captchaKey, CAPTCHA_CHALLENGE_TTL_MS);
+
+          await recordFailedSignInAttempt({
+            email: normalizedEmail,
+            reason: 'RATE_LIMIT_EXCEEDED',
+            ipAddress,
+            userAgent,
+          });
+
           await writeAuditLog({
-            action: 'auth.signin.rate_limited',
+            action: 'auth.signin.captcha_issued',
             ipAddress,
             userAgent,
             metadata: {
-              email: credentials.email,
+              email: normalizedEmail,
+              prompt: challenge.prompt,
               retryAfterSeconds: limitResult.retryAfterSeconds,
+              occurredAt: new Date().toISOString(),
+              agentId: AGENT_ID,
             },
           });
 
-          throw new Error('Too many sign-in attempts. Please try again in 15 minutes.');
+          throw new Error(
+            buildCaptchaErrorMessage(challenge.prompt, limitResult.retryAfterSeconds)
+          );
         }
 
         const user = await prisma.user.findUnique({
-          where: { email: credentials.email as string },
+          where: { email: normalizedEmail },
         });
 
         if (!user?.password) {
-          await writeAuditLog({
-            action: 'auth.signin.failed',
+          await recordFailedSignInAttempt({
             ipAddress,
             userAgent,
-            metadata: {
-              email: credentials.email,
-              reason: 'USER_NOT_FOUND_OR_PASSWORDLESS',
-            },
+            email: normalizedEmail,
+            reason: 'USER_NOT_FOUND_OR_PASSWORDLESS',
           });
           return null;
         }
@@ -208,34 +398,29 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         const isMatch = await bcrypt.compare(credentials.password as string, user.password);
         if (!isMatch) {
-          await writeAuditLog({
+          await recordFailedSignInAttempt({
             userId: user.id,
-            action: 'auth.signin.failed',
             ipAddress,
             userAgent,
-            metadata: {
-              email: user.email,
-              reason: 'INVALID_PASSWORD',
-            },
+            email: user.email,
+            reason: 'INVALID_PASSWORD',
           });
           return null;
         }
 
         if (!user.emailVerified) {
-          await writeAuditLog({
+          await recordFailedSignInAttempt({
             userId: user.id,
-            action: 'auth.signin.failed',
             ipAddress,
             userAgent,
-            metadata: {
-              email: user.email,
-              reason: 'EMAIL_NOT_VERIFIED',
-            },
+            email: user.email,
+            reason: 'EMAIL_NOT_VERIFIED',
           });
           throw new Error('Email not verified');
         }
 
         resetRateLimit(limiterKey);
+        clearCaptchaChallenge(captchaKey);
 
         await prisma.user.update({
           where: { id: user.id },

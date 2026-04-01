@@ -19,6 +19,45 @@ import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 
+type UpgradePromptPayload = {
+  step: 1 | 2 | 3;
+  title: string;
+  message: string;
+  ctaLabel: string;
+  ctaHref: string;
+  discountCode: string;
+  validDays: number;
+};
+
+const parseUpgradePrompt = (value: unknown): UpgradePromptPayload | null => {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+
+  const prompt = value as Partial<UpgradePromptPayload>;
+  if (
+    (prompt.step !== 1 && prompt.step !== 2 && prompt.step !== 3) ||
+    typeof prompt.title !== 'string' ||
+    typeof prompt.message !== 'string' ||
+    typeof prompt.ctaLabel !== 'string' ||
+    typeof prompt.ctaHref !== 'string' ||
+    typeof prompt.discountCode !== 'string' ||
+    typeof prompt.validDays !== 'number'
+  ) {
+    return null;
+  }
+
+  return {
+    step: prompt.step,
+    title: prompt.title,
+    message: prompt.message,
+    ctaLabel: prompt.ctaLabel,
+    ctaHref: prompt.ctaHref,
+    discountCode: prompt.discountCode,
+    validDays: prompt.validDays,
+  };
+};
+
 export function AddNewSessionDialog() {
   const [note, setNote] = useState('');
   const [loading, setLoading] = useState(false);
@@ -217,6 +256,20 @@ export function DialogBody({
       const result = await response.json();
       console.log('Consultation session created:', result);
       toast.success('Consultation started successfully!');
+
+      const upgradePrompt = parseUpgradePrompt(result?.upgradePrompt);
+      if (upgradePrompt) {
+        toast(upgradePrompt.title, {
+          description: `${upgradePrompt.message} Use code ${upgradePrompt.discountCode} within ${upgradePrompt.validDays} days.`,
+          action: {
+            label: upgradePrompt.ctaLabel,
+            onClick: () => {
+              router.push(upgradePrompt.ctaHref);
+            },
+          },
+        });
+      }
+
       router.push(`/dashboard/medical-agent/${result.sessionId}`);
     } catch (error) {
       console.error('Failed to start consultation:', error);

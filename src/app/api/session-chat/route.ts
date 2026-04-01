@@ -5,6 +5,7 @@ import {
   consumeConsultationCredit,
   getEntitlementSnapshot,
 } from '@/lib/billing/entitlements';
+import { getUpgradePromptForHighValueAction } from '@/lib/billing/upgrade-prompts';
 import { withApiRequestAudit } from '@/lib/api/request-audit';
 import { AIDoctorAgents } from '@/lib/data/list';
 import prisma from '@/lib/prisma';
@@ -227,8 +228,14 @@ const postHandler = async (request: Request) => {
         );
       }
 
-      await consumeConsultationCredit(userId, {
+      const usageSnapshot = await consumeConsultationCredit(userId, {
         requiresPaidPlan: Boolean(canonicalDoctor.subscriptionRequired),
+      });
+
+      const upgradePrompt = getUpgradePromptForHighValueAction({
+        plan: usageSnapshot.plan,
+        consultationsUsed: usageSnapshot.consultationsUsed,
+        action: 'CONSULTATION',
       });
 
       const result = await prisma.chatSession.create({
@@ -249,6 +256,7 @@ const postHandler = async (request: Request) => {
         {
           ...result,
           premiumAccessPending: access.status === 'PREMIUM_PENDING',
+          upgradePrompt,
         },
         { status: 200 }
       );

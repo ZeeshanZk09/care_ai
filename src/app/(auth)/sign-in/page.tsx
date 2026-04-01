@@ -8,10 +8,14 @@ import { type FormEvent, useState } from 'react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 
+const CAPTCHA_ERROR_PREFIX = 'CAPTCHA_REQUIRED|';
+
 export default function SignInPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [captchaPrompt, setCaptchaPrompt] = useState<string | null>(null);
+  const [captchaAnswer, setCaptchaAnswer] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: FormEvent) => {
@@ -21,16 +25,27 @@ export default function SignInPage() {
       const res = await signIn('credentials', {
         email,
         password,
+        captchaAnswer,
         redirect: false,
       });
 
       if (res?.error) {
+        if (res.error.startsWith(CAPTCHA_ERROR_PREFIX)) {
+          const [, prompt] = res.error.split('|');
+          setCaptchaPrompt(prompt ?? 'Please solve the CAPTCHA challenge.');
+          setCaptchaAnswer('');
+          toast.error('Too many failed attempts. Complete the CAPTCHA challenge to continue.');
+          return;
+        }
+
         toast.error(
           res.error === 'CredentialsSignin'
             ? 'Invalid credentials. Please verify email if not done.'
             : res.error
         );
       } else if (res?.ok) {
+        setCaptchaPrompt(null);
+        setCaptchaAnswer('');
         router.push('/dashboard');
         router.refresh();
       }
@@ -44,29 +59,6 @@ export default function SignInPage() {
       <h1 className='text-2xl font-bold'>Welcome to CareAI</h1>
       <p className='text-gray-600 mb-4'>Sign in to start your consultation</p>
 
-      <div className='w-full max-w-xs sm:max-w-sm grid grid-cols-2 gap-4'>
-        <Button
-          className='max-w-3xs'
-          variant='outline'
-          onClick={() => signIn('github', { callbackUrl: '/dashboard' })}
-        >
-          GitHub
-        </Button>
-        <Button
-          className='max-w-3xs'
-          variant='outline'
-          onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
-        >
-          Google
-        </Button>
-      </div>
-
-      <div className='flex items-center gap-2 w-full max-w-xs sm:max-w-sm my-2'>
-        <div className='flex-1 h-px bg-gray-200'></div>
-        <span className='text-sm text-gray-500'>OR</span>
-        <div className='flex-1 h-px bg-gray-200'></div>
-      </div>
-
       <form
         onSubmit={handleSubmit}
         className='w-full max-w-sm flex flex-col gap-4 bg-white p-6 rounded-lg shadow-sm border'
@@ -77,7 +69,6 @@ export default function SignInPage() {
             id='email'
             type='email'
             value={email}
-            className='mt-2'
             onChange={(e) => setEmail(e.target.value)}
             required
           />
@@ -88,11 +79,23 @@ export default function SignInPage() {
             id='password'
             type='password'
             value={password}
-            className='mt-2'
             onChange={(e) => setPassword(e.target.value)}
             required
           />
         </div>
+        {captchaPrompt ? (
+          <div>
+            <Label htmlFor='captchaAnswer'>{captchaPrompt}</Label>
+            <Input
+              id='captchaAnswer'
+              type='text'
+              value={captchaAnswer}
+              onChange={(e) => setCaptchaAnswer(e.target.value)}
+              placeholder='Enter your answer'
+              required
+            />
+          </div>
+        ) : null}
         <div className='flex justify-between items-center text-sm'>
           <Link href='/forgot-password' className='text-blue-600 hover:underline'>
             Forgot password?
@@ -105,6 +108,29 @@ export default function SignInPage() {
           {loading ? 'Signing in...' : 'Sign in'}
         </Button>
       </form>
+
+      <div className='flex items-center gap-2 w-full max-w-sm my-2'>
+        <div className='flex-1 h-px bg-gray-200'></div>
+        <span className='text-sm text-gray-500'>OR</span>
+        <div className='flex-1 h-px bg-gray-200'></div>
+      </div>
+
+      <div className='w-full max-w-sm flex flex-col gap-3'>
+        <Button
+          className='w-full'
+          variant='outline'
+          onClick={() => signIn('github', { callbackUrl: '/dashboard' })}
+        >
+          Sign in with GitHub
+        </Button>
+        <Button
+          className='w-full'
+          variant='outline'
+          onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
+        >
+          Sign in with Google
+        </Button>
+      </div>
     </div>
   );
 }
