@@ -361,7 +361,8 @@ const enforceCaptchaForAuthorize = async (
   captchaAnswer: unknown
 ) => {
   const existingCaptchaPrompt = getCaptchaChallengePrompt(context.captchaKey);
-  const captchaRequired = combinedFailures >= SIGN_IN_MAX_ATTEMPTS || Boolean(existingCaptchaPrompt);
+  const captchaRequired =
+    combinedFailures >= SIGN_IN_MAX_ATTEMPTS || Boolean(existingCaptchaPrompt);
 
   if (!captchaRequired) {
     return;
@@ -619,7 +620,7 @@ const authorizeCredentials = async (
         captchaAnswer?: unknown;
       }
     | undefined,
-  request: Request | undefined,
+  request: Request | undefined
 ) => {
   if (!credentials?.email || !credentials?.password) return null;
 
@@ -636,7 +637,11 @@ const authorizeCredentials = async (
     ipAddress: context.ipAddress,
     userId: user?.id ?? null,
   });
-  await enforceCaptchaForAuthorize(context, rollingFailures.combinedFailures, credentials.captchaAnswer);
+  await enforceCaptchaForAuthorize(
+    context,
+    rollingFailures.combinedFailures,
+    credentials.captchaAnswer
+  );
   await maybeLockUserForFailureThreshold(user, rollingFailures.combinedFailures, context);
 
   if (!user?.password) {

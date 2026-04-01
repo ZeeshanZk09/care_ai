@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { AIDoctorAgents } from '@/lib/data/list';
+import { trackMarketingEvent } from '@/lib/analytics/pixels';
 import { findGibrishInNotes, keywordMatchStrict } from '@/lib/utils/note';
 import { ArrowRight, Loader, Plus, RotateCcw } from 'lucide-react';
 import Image from 'next/image';
@@ -229,6 +230,12 @@ export function DialogBody({
       ? `/dashboard/medical-agent/${pendingConsultationSessionId}`
       : '/dashboard';
 
+    trackMarketingEvent('consultation_abandoned', {
+      funnelId,
+      lastKnownStep: currentStep,
+      resumeLink,
+    });
+
     void trackFunnelEvent({
       step: 'consultation_abandoned',
       status: 'abandoned',
@@ -263,6 +270,19 @@ export function DialogBody({
       status: 'completed',
     });
   }, [selectedDoctorId]);
+
+  useEffect(() => {
+    if (!upgradeOfferPrompt) {
+      return;
+    }
+
+    trackMarketingEvent('upgrade_cta_shown', {
+      funnelId,
+      step: upgradeOfferPrompt.step,
+      variant: upgradeOfferPrompt.variant,
+      ctaHref: upgradeOfferPrompt.ctaHref,
+    });
+  }, [upgradeOfferPrompt, funnelId]);
 
   const handleSubmit = async (e: any) => {
     e.preventDefault();
@@ -378,6 +398,10 @@ export function DialogBody({
         status: 'completed',
         sessionId: result.sessionId,
         deepLink,
+      });
+      trackMarketingEvent('consultation_started', {
+        funnelId,
+        sessionId: result.sessionId,
       });
 
       const upgradePrompt = parseUpgradePrompt(result?.upgradePrompt);
@@ -555,6 +579,11 @@ export function DialogBody({
                 variant='outline'
                 onClick={() => {
                   const resumeSessionId = pendingConsultationSessionId;
+                  trackMarketingEvent('upgrade_cta_dismissed', {
+                    funnelId,
+                    step: upgradeOfferPrompt.step,
+                    variant: upgradeOfferPrompt.variant,
+                  });
                   setUpgradeOfferPrompt(null);
                   setPendingConsultationSessionId(null);
 

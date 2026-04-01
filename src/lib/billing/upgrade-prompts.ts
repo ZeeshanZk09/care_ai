@@ -104,7 +104,9 @@ export const getSessionStartUpgradePrompt = (
   }
 
   const remainingLabel =
-    typeof consultationsRemaining === 'number' ? `${consultationsRemaining}` : 'a limited number of';
+    typeof consultationsRemaining === 'number'
+      ? `${consultationsRemaining}`
+      : 'a limited number of';
 
   return buildPrompt(
     1,

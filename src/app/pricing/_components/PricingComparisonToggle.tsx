@@ -28,8 +28,12 @@ export default function PricingComparisonToggle() {
     const proAnnual = Math.round(proMonthly * 12 * (1 - ANNUAL_DISCOUNT_RATIO));
 
     return {
-      basicPriceLabel: isAnnual ? `${formatCurrency(basicAnnual)} / year` : `${formatCurrency(basicMonthly)} / month`,
-      proPriceLabel: isAnnual ? `${formatCurrency(proAnnual)} / year` : `${formatCurrency(proMonthly)} / month`,
+      basicPriceLabel: isAnnual
+        ? `${formatCurrency(basicAnnual)} / year`
+        : `${formatCurrency(basicMonthly)} / month`,
+      proPriceLabel: isAnnual
+        ? `${formatCurrency(proAnnual)} / year`
+        : `${formatCurrency(proMonthly)} / month`,
       basicAnnualSavingsLabel: formatCurrency(basicMonthly * 12 - basicAnnual),
       proAnnualSavingsLabel: formatCurrency(proMonthly * 12 - proAnnual),
     };
@@ -89,10 +93,14 @@ export default function PricingComparisonToggle() {
             <td className='border px-4 py-3'>Savings vs monthly billing</td>
             <td className='border px-4 py-3'>-</td>
             <td className='border px-4 py-3'>
-              {cycle === 'ANNUAL' ? `${pricing.basicAnnualSavingsLabel} / year` : 'Switch to annual to save 20%'}
+              {cycle === 'ANNUAL'
+                ? `${pricing.basicAnnualSavingsLabel} / year`
+                : 'Switch to annual to save 20%'}
             </td>
             <td className='border px-4 py-3'>
-              {cycle === 'ANNUAL' ? `${pricing.proAnnualSavingsLabel} / year` : 'Switch to annual to save 20%'}
+              {cycle === 'ANNUAL'
+                ? `${pricing.proAnnualSavingsLabel} / year`
+                : 'Switch to annual to save 20%'}
             </td>
           </tr>
         </tbody>

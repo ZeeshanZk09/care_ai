@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import { trackMarketingEvent } from '@/lib/analytics/pixels';
 
 type DashboardWelcomeBannerProps = {
   planTier: 'FREE' | 'BASIC' | 'PRO';
@@ -14,6 +15,10 @@ export default function DashboardWelcomeBanner({
   const isPaidPlan = planTier === 'BASIC' || planTier === 'PRO';
 
   useEffect(() => {
+    trackMarketingEvent('plan_upgraded', {
+      planTier,
+    });
+
     const timeout = setTimeout(() => {
       router.replace('/dashboard');
     }, 1800);

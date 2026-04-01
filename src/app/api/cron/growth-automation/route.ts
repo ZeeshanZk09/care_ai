@@ -1,19 +1,19 @@
-import { notifyGrowthAlert } from "@/lib/alerts";
-import { withApiRequestAudit } from "@/lib/api/request-audit";
-import { writeAuditLog } from "@/lib/audit";
-import { requireCronEnv } from "@/env";
+import { notifyGrowthAlert } from '@/lib/alerts';
+import { withApiRequestAudit } from '@/lib/api/request-audit';
+import { writeAuditLog } from '@/lib/audit';
+import { requireCronEnv } from '@/env';
 import {
   abandonedConsultationReminderTemplate,
   disengagementSurveyTemplate,
   freeToPaidCampaignTemplate,
   freeUserOnboardingTemplate,
   incompleteConsultationWeeklySummaryTemplate,
-} from "@/lib/email-templates";
-import { sendEmail } from "@/lib/mail";
-import prisma from "@/lib/prisma";
-import { NextResponse } from "next/server";
+} from '@/lib/email-templates';
+import { sendEmail } from '@/lib/mail';
+import prisma from '@/lib/prisma';
+import { NextResponse } from 'next/server';
 
-const AGENT_ID = "GPT-5.3-Codex";
+const AGENT_ID = 'GPT-5.3-Codex';
 const ABANDONED_LOOKBACK_HOURS = 48;
 const ABANDONED_REMINDER_COOLDOWN_HOURS = 24;
 const MAX_WEEKLY_CAMPAIGN_EMAILS = 100;
@@ -23,26 +23,26 @@ const MAX_WEEKLY_INCOMPLETE_EMAILS = 50;
 const MAX_SURVEY_EMAILS = 40;
 
 const WEEKLY_TOPIC_POOL = [
-  "Seasonal allergy symptom check-ins",
-  "Heat and hydration early warning habits",
-  "Monsoon flu and respiratory caution",
-  "Healthy sleep and stress screening routines",
-  "Family preventive care planning",
-  "Heart-health symptom literacy for adults",
+  'Seasonal allergy symptom check-ins',
+  'Heat and hydration early warning habits',
+  'Monsoon flu and respiratory caution',
+  'Healthy sleep and stress screening routines',
+  'Family preventive care planning',
+  'Heart-health symptom literacy for adults',
 ];
 
 const SURVEY_QUESTIONS = [
-  "What was the main reason you did not start a consultation this month?",
-  "Did anything in the app make consultations harder to begin or complete?",
-  "How satisfied were you with consultation quality last month (1-5)?",
-  "What single feature would most increase your likelihood to return?",
-  "Would a limited-time Pro discount motivate you to resume consultations?",
+  'What was the main reason you did not start a consultation this month?',
+  'Did anything in the app make consultations harder to begin or complete?',
+  'How satisfied were you with consultation quality last month (1-5)?',
+  'What single feature would most increase your likelihood to return?',
+  'Would a limited-time Pro discount motivate you to resume consultations?',
 ];
 
 const ONBOARDING_DAYS = [0, 2, 4, 6, 7] as const;
 
 type OnboardingDay = (typeof ONBOARDING_DAYS)[number];
-type DispatchMode = "DRY_RUN" | "CONFIRMED_SEND";
+type DispatchMode = 'DRY_RUN' | 'CONFIRMED_SEND';
 
 type DispatchResult = {
   attempted: number;
@@ -65,34 +65,26 @@ const isAuthorizedCronRequest = (request: Request) => {
     return false;
   }
 
-  const authHeader = request.headers.get("authorization");
-  const bearerToken = authHeader?.startsWith("Bearer ")
-    ? authHeader.slice(7)
-    : null;
+  const authHeader = request.headers.get('authorization');
+  const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
   return bearerToken === configuredSecret;
 };
 
 const getAppBaseUrl = () => {
-  const url = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  return url.replace(/\/+$/, "");
+  const url = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+  return url.replace(/\/+$/, '');
 };
 
 const getCurrentMonthStartUtc = (date = new Date()) => {
-  return new Date(
-    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1, 0, 0, 0, 0),
-  );
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1, 0, 0, 0, 0));
 };
 
 const getPreviousMonthStartUtc = (date = new Date()) => {
-  return new Date(
-    Date.UTC(date.getUTCFullYear(), date.getUTCMonth() - 1, 1, 0, 0, 0, 0),
-  );
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() - 1, 1, 0, 0, 0, 0));
 };
 
 const getWeekStartUtc = (date = new Date()) => {
-  const utc = new Date(
-    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
-  );
+  const utc = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
   const day = utc.getUTCDay();
   const diffToMonday = (day + 6) % 7;
   utc.setUTCDate(utc.getUTCDate() - diffToMonday);
@@ -101,30 +93,21 @@ const getWeekStartUtc = (date = new Date()) => {
 };
 
 const getIsoWeek = (date = new Date()) => {
-  const target = new Date(
-    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
-  );
+  const target = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
   const dayNum = target.getUTCDay() || 7;
   target.setUTCDate(target.getUTCDate() + 4 - dayNum);
   const yearStart = new Date(Date.UTC(target.getUTCFullYear(), 0, 1));
-  return Math.ceil(
-    ((target.getTime() - yearStart.getTime()) / 86400000 + 1) / 7,
-  );
+  return Math.ceil(((target.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
 };
 
 const getWeeklyTopic = (date = new Date()) => {
   const weekNumber = getIsoWeek(date);
-  return (
-    WEEKLY_TOPIC_POOL[(weekNumber - 1) % WEEKLY_TOPIC_POOL.length] ??
-    WEEKLY_TOPIC_POOL[0]
-  );
+  return WEEKLY_TOPIC_POOL[(weekNumber - 1) % WEEKLY_TOPIC_POOL.length] ?? WEEKLY_TOPIC_POOL[0];
 };
 
 const getOfferExpiryDateLabel = (date = new Date()) => {
   const expiry = new Date(date.getTime() + 7 * 24 * 60 * 60 * 1000);
-  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(
-    expiry,
-  );
+  return new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(expiry);
 };
 
 const getDaysSince = (from: Date, to = new Date()) => {
@@ -142,45 +125,40 @@ const normalizeName = (name: string | null | undefined) => {
 
 const parseDispatchMode = (request: Request): DispatchMode => {
   const searchParams = new URL(request.url).searchParams;
-  const confirmSendRaw = searchParams.get("confirmSend")?.toLowerCase();
+  const confirmSendRaw = searchParams.get('confirmSend')?.toLowerCase();
   const confirmSend =
-    confirmSendRaw === "true" ||
-    confirmSendRaw === "1" ||
-    confirmSendRaw === "yes";
-  return confirmSend ? "CONFIRMED_SEND" : "DRY_RUN";
+    confirmSendRaw === 'true' || confirmSendRaw === '1' || confirmSendRaw === 'yes';
+  return confirmSend ? 'CONFIRMED_SEND' : 'DRY_RUN';
 };
 
 const toMetadataRecord = (value: unknown) => {
-  if (!value || typeof value !== "object") {
+  if (!value || typeof value !== 'object') {
     return null;
   }
 
   return value as Record<string, unknown>;
 };
 
-const readStringFromMetadata = (
-  metadata: Record<string, unknown> | null,
-  key: string,
-) => {
+const readStringFromMetadata = (metadata: Record<string, unknown> | null, key: string) => {
   if (!metadata) {
     return null;
   }
 
   const value = metadata[key];
-  return typeof value === "string" ? value : null;
+  return typeof value === 'string' ? value : null;
 };
 
 const resolveResumeUrl = (
   appBaseUrl: string,
   deepLink: string | null,
-  sessionId: string | null,
+  sessionId: string | null
 ) => {
   if (deepLink) {
-    if (deepLink.startsWith("http")) {
+    if (deepLink.startsWith('http')) {
       return deepLink;
     }
 
-    const normalizedPath = deepLink.startsWith("/") ? deepLink : `/${deepLink}`;
+    const normalizedPath = deepLink.startsWith('/') ? deepLink : `/${deepLink}`;
     return `${appBaseUrl}${normalizedPath}`;
   }
 
@@ -197,7 +175,7 @@ const resolveAbandonedEvent = (
     metadata: unknown;
     createdAt: Date;
   },
-  appBaseUrl: string,
+  appBaseUrl: string
 ): AbandonedConsultationEvent | null => {
   if (!event.userId) {
     return null;
@@ -205,11 +183,10 @@ const resolveAbandonedEvent = (
 
   const metadata = toMetadataRecord(event.metadata);
 
-  const sessionId = readStringFromMetadata(metadata, "sessionId");
-  const deepLink = readStringFromMetadata(metadata, "deepLink");
-  const fallbackStep = readStringFromMetadata(metadata, "step");
-  const lastKnownStep =
-    readStringFromMetadata(metadata, "lastKnownStep") ?? fallbackStep;
+  const sessionId = readStringFromMetadata(metadata, 'sessionId');
+  const deepLink = readStringFromMetadata(metadata, 'deepLink');
+  const fallbackStep = readStringFromMetadata(metadata, 'step');
+  const lastKnownStep = readStringFromMetadata(metadata, 'lastKnownStep') ?? fallbackStep;
   const resumeUrl = resolveResumeUrl(appBaseUrl, deepLink, sessionId);
 
   return {
@@ -227,9 +204,9 @@ const dispatchEmail = async (
   subject: string,
   html: string,
   templateName: string,
-  metadata: Record<string, unknown>,
+  metadata: Record<string, unknown>
 ) => {
-  if (mode === "DRY_RUN") {
+  if (mode === 'DRY_RUN') {
     return {
       sent: false,
       failed: false,
@@ -252,8 +229,7 @@ const dispatchEmail = async (
     return {
       sent: false,
       failed: true,
-      errorMessage:
-        error instanceof Error ? error.message : "Unknown dispatch error",
+      errorMessage: error instanceof Error ? error.message : 'Unknown dispatch error',
     };
   }
 };
@@ -261,10 +237,10 @@ const dispatchEmail = async (
 const sendWeeklyCampaign = async (mode: DispatchMode, occurredAt: string) => {
   const weekStart = getWeekStartUtc();
   const alreadySentThisWeek =
-    mode === "CONFIRMED_SEND"
+    mode === 'CONFIRMED_SEND'
       ? await prisma.auditLog.count({
           where: {
-            action: "growth.campaign.weekly.sent",
+            action: 'growth.campaign.weekly.sent',
             createdAt: {
               gte: weekStart,
             },
@@ -274,11 +250,11 @@ const sendWeeklyCampaign = async (mode: DispatchMode, occurredAt: string) => {
 
   const freeUsers = await prisma.user.findMany({
     where: {
-      planTier: "FREE",
-      status: "ACTIVE",
+      planTier: 'FREE',
+      status: 'ACTIVE',
     },
     orderBy: {
-      createdAt: "desc",
+      createdAt: 'desc',
     },
     take: MAX_WEEKLY_CAMPAIGN_EMAILS,
     select: {
@@ -303,21 +279,21 @@ const sendWeeklyCampaign = async (mode: DispatchMode, occurredAt: string) => {
         normalizeName(user.name),
         topic,
         offerEndsOn,
-        upgradeUrl,
+        upgradeUrl
       );
       const dispatchResult = await dispatchEmail(
         mode,
         user.email,
         template.subject,
         template.html,
-        "growth_weekly_campaign",
+        'growth_weekly_campaign',
         {
           userId: user.id,
           topic,
           offerEndsOn,
           occurredAt,
           agentId: AGENT_ID,
-        },
+        }
       );
 
       if (dispatchResult.sent) {
@@ -330,12 +306,10 @@ const sendWeeklyCampaign = async (mode: DispatchMode, occurredAt: string) => {
     }
   }
 
-  let action = "growth.campaign.weekly.dry_run";
-  if (mode === "CONFIRMED_SEND") {
+  let action = 'growth.campaign.weekly.dry_run';
+  if (mode === 'CONFIRMED_SEND') {
     action =
-      alreadySentThisWeek === 0
-        ? "growth.campaign.weekly.sent"
-        : "growth.campaign.weekly.skipped";
+      alreadySentThisWeek === 0 ? 'growth.campaign.weekly.sent' : 'growth.campaign.weekly.skipped';
   }
 
   await writeAuditLog({
@@ -366,12 +340,12 @@ const sendWeeklyCampaign = async (mode: DispatchMode, occurredAt: string) => {
 
 const sendOnboardingLifecycle = async (
   mode: DispatchMode,
-  occurredAt: string,
+  occurredAt: string
 ): Promise<DispatchResult> => {
   const users = await prisma.user.findMany({
     where: {
-      planTier: "FREE",
-      status: "ACTIVE",
+      planTier: 'FREE',
+      status: 'ACTIVE',
       createdAt: {
         gte: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000),
       },
@@ -412,7 +386,7 @@ const sendOnboardingLifecycle = async (
     const template = freeUserOnboardingTemplate(
       normalizeName(user.name),
       onboardingDay,
-      `${getAppBaseUrl()}/dashboard`,
+      `${getAppBaseUrl()}/dashboard`
     );
 
     const dispatchResult = await dispatchEmail(
@@ -420,13 +394,13 @@ const sendOnboardingLifecycle = async (
       user.email,
       template.subject,
       template.html,
-      "growth_onboarding_lifecycle",
+      'growth_onboarding_lifecycle',
       {
         userId: user.id,
         onboardingDay,
         occurredAt,
         agentId: AGENT_ID,
-      },
+      }
     );
 
     if (dispatchResult.sent) {
@@ -453,9 +427,9 @@ const sendOnboardingLifecycle = async (
     }
   }
 
-  if (mode === "DRY_RUN") {
+  if (mode === 'DRY_RUN') {
     await writeAuditLog({
-      action: "growth.onboarding.lifecycle.dry_run",
+      action: 'growth.onboarding.lifecycle.dry_run',
       metadata: {
         attempted,
         sent,
@@ -476,25 +450,23 @@ const sendOnboardingLifecycle = async (
 
 const sendAbandonedConsultationReminders = async (
   mode: DispatchMode,
-  occurredAt: string,
+  occurredAt: string
 ): Promise<DispatchResult> => {
   const appBaseUrl = getAppBaseUrl();
-  const lookbackThreshold = new Date(
-    Date.now() - ABANDONED_LOOKBACK_HOURS * 60 * 60 * 1000,
-  );
+  const lookbackThreshold = new Date(Date.now() - ABANDONED_LOOKBACK_HOURS * 60 * 60 * 1000);
 
   const abandonedEvents = await prisma.auditLog.findMany({
     where: {
       createdAt: {
         gte: lookbackThreshold,
       },
-      action: "consultation.abandoned",
+      action: 'consultation.abandoned',
       userId: {
         not: null,
       },
     },
     orderBy: {
-      createdAt: "desc",
+      createdAt: 'desc',
     },
     take: MAX_RETARGET_EMAILS * 4,
     select: {
@@ -520,7 +492,7 @@ const sendAbandonedConsultationReminders = async (
       id: {
         in: candidateUserIds,
       },
-      status: "ACTIVE",
+      status: 'ACTIVE',
     },
     select: {
       id: true,
@@ -532,11 +504,9 @@ const sendAbandonedConsultationReminders = async (
 
   const recentlyReminded = await prisma.auditLog.findMany({
     where: {
-      action: "growth.retarget.abandoned_consultation.sent",
+      action: 'growth.retarget.abandoned_consultation.sent',
       createdAt: {
-        gte: new Date(
-          Date.now() - ABANDONED_REMINDER_COOLDOWN_HOURS * 60 * 60 * 1000,
-        ),
+        gte: new Date(Date.now() - ABANDONED_REMINDER_COOLDOWN_HOURS * 60 * 60 * 1000),
       },
       userId: {
         in: candidateUserIds,
@@ -547,15 +517,10 @@ const sendAbandonedConsultationReminders = async (
     },
   });
 
-  const remindedUserIds = new Set(
-    recentlyReminded.map((row) => row.userId).filter(Boolean),
-  );
+  const remindedUserIds = new Set(recentlyReminded.map((row) => row.userId).filter(Boolean));
 
   const targeted = candidates
-    .filter(
-      (candidate) =>
-        !remindedUserIds.has(candidate.userId) && userById.has(candidate.userId),
-    )
+    .filter((candidate) => !remindedUserIds.has(candidate.userId) && userById.has(candidate.userId))
     .slice(0, MAX_RETARGET_EMAILS);
 
   let attempted = 0;
@@ -572,7 +537,7 @@ const sendAbandonedConsultationReminders = async (
     const template = abandonedConsultationReminderTemplate(
       normalizeName(user.name),
       candidate.resumeUrl,
-      candidate.stepLabel,
+      candidate.stepLabel
     );
 
     const dispatchResult = await dispatchEmail(
@@ -580,7 +545,7 @@ const sendAbandonedConsultationReminders = async (
       user.email,
       template.subject,
       template.html,
-      "growth_abandoned_consultation_reminder",
+      'growth_abandoned_consultation_reminder',
       {
         userId: candidate.userId,
         sessionId: candidate.sessionId,
@@ -588,14 +553,14 @@ const sendAbandonedConsultationReminders = async (
         resumeUrl: candidate.resumeUrl,
         occurredAt,
         agentId: AGENT_ID,
-      },
+      }
     );
 
     if (dispatchResult.sent) {
       sent += 1;
       await writeAuditLog({
         userId: candidate.userId,
-        action: "growth.retarget.abandoned_consultation.sent",
+        action: 'growth.retarget.abandoned_consultation.sent',
         metadata: {
           sessionId: candidate.sessionId,
           stepLabel: candidate.stepLabel,
@@ -608,7 +573,7 @@ const sendAbandonedConsultationReminders = async (
       failed += 1;
       await writeAuditLog({
         userId: candidate.userId,
-        action: "growth.retarget.abandoned_consultation.failed",
+        action: 'growth.retarget.abandoned_consultation.failed',
         metadata: {
           sessionId: candidate.sessionId,
           stepLabel: candidate.stepLabel,
@@ -621,9 +586,9 @@ const sendAbandonedConsultationReminders = async (
     }
   }
 
-  if (mode === "DRY_RUN") {
+  if (mode === 'DRY_RUN') {
     await writeAuditLog({
-      action: "growth.retarget.abandoned_consultation.dry_run",
+      action: 'growth.retarget.abandoned_consultation.dry_run',
       metadata: {
         targetedUsers: targeted.length,
         lookbackHours: ABANDONED_LOOKBACK_HOURS,
@@ -646,14 +611,14 @@ const sendAbandonedConsultationReminders = async (
 
 const sendWeeklyIncompleteConsultationSummary = async (
   mode: DispatchMode,
-  occurredAt: string,
+  occurredAt: string
 ): Promise<DispatchResult> => {
   const appBaseUrl = getAppBaseUrl();
   const weekStart = getWeekStartUtc();
 
   const abandonedEvents = await prisma.auditLog.findMany({
     where: {
-      action: "consultation.abandoned",
+      action: 'consultation.abandoned',
       createdAt: {
         gte: weekStart,
       },
@@ -662,7 +627,7 @@ const sendWeeklyIncompleteConsultationSummary = async (
       },
     },
     orderBy: {
-      createdAt: "desc",
+      createdAt: 'desc',
     },
     take: MAX_WEEKLY_INCOMPLETE_EMAILS * 6,
     select: {
@@ -672,10 +637,7 @@ const sendWeeklyIncompleteConsultationSummary = async (
     },
   });
 
-  const summaryByUser = new Map<
-    string,
-    { count: number; latest: AbandonedConsultationEvent }
-  >();
+  const summaryByUser = new Map<string, { count: number; latest: AbandonedConsultationEvent }>();
   for (const event of abandonedEvents) {
     const resolved = resolveAbandonedEvent(event, appBaseUrl);
     if (!resolved) {
@@ -713,7 +675,7 @@ const sendWeeklyIncompleteConsultationSummary = async (
         id: {
           in: candidateUserIds,
         },
-        status: "ACTIVE",
+        status: 'ACTIVE',
       },
       select: {
         id: true,
@@ -724,7 +686,7 @@ const sendWeeklyIncompleteConsultationSummary = async (
     }),
     prisma.auditLog.findMany({
       where: {
-        action: "growth.retarget.incomplete_weekly.sent",
+        action: 'growth.retarget.incomplete_weekly.sent',
         createdAt: {
           gte: weekStart,
         },
@@ -738,9 +700,7 @@ const sendWeeklyIncompleteConsultationSummary = async (
     }),
   ]);
 
-  const alreadySentUserIds = new Set(
-    alreadySentRows.map((row) => row.userId).filter(Boolean),
-  );
+  const alreadySentUserIds = new Set(alreadySentRows.map((row) => row.userId).filter(Boolean));
 
   let attempted = 0;
   let sent = 0;
@@ -761,7 +721,7 @@ const sendWeeklyIncompleteConsultationSummary = async (
       normalizeName(user.name),
       summary.count,
       summary.latest.resumeUrl,
-      summary.latest.stepLabel,
+      summary.latest.stepLabel
     );
 
     const dispatchResult = await dispatchEmail(
@@ -769,7 +729,7 @@ const sendWeeklyIncompleteConsultationSummary = async (
       user.email,
       template.subject,
       template.html,
-      "growth_weekly_incomplete_consultation_summary",
+      'growth_weekly_incomplete_consultation_summary',
       {
         userId: user.id,
         abandonedCount: summary.count,
@@ -777,14 +737,14 @@ const sendWeeklyIncompleteConsultationSummary = async (
         resumeUrl: summary.latest.resumeUrl,
         occurredAt,
         agentId: AGENT_ID,
-      },
+      }
     );
 
     if (dispatchResult.sent) {
       sent += 1;
       await writeAuditLog({
         userId: user.id,
-        action: "growth.retarget.incomplete_weekly.sent",
+        action: 'growth.retarget.incomplete_weekly.sent',
         metadata: {
           abandonedCount: summary.count,
           lastStep: summary.latest.stepLabel,
@@ -798,7 +758,7 @@ const sendWeeklyIncompleteConsultationSummary = async (
       failed += 1;
       await writeAuditLog({
         userId: user.id,
-        action: "growth.retarget.incomplete_weekly.failed",
+        action: 'growth.retarget.incomplete_weekly.failed',
         metadata: {
           abandonedCount: summary.count,
           lastStep: summary.latest.stepLabel,
@@ -812,9 +772,9 @@ const sendWeeklyIncompleteConsultationSummary = async (
     }
   }
 
-  if (mode === "DRY_RUN") {
+  if (mode === 'DRY_RUN') {
     await writeAuditLog({
-      action: "growth.retarget.incomplete_weekly.dry_run",
+      action: 'growth.retarget.incomplete_weekly.dry_run',
       metadata: {
         weekStart: weekStart.toISOString(),
         candidateUsers: users.length,
@@ -837,16 +797,16 @@ const sendWeeklyIncompleteConsultationSummary = async (
 
 const sendDisengagementSurvey = async (
   mode: DispatchMode,
-  occurredAt: string,
+  occurredAt: string
 ): Promise<DispatchResult> => {
   const currentMonthStart = getCurrentMonthStartUtc();
   const previousMonthStart = getPreviousMonthStartUtc();
 
   const [consultedPreviousMonth, consultedCurrentMonth] = await Promise.all([
     prisma.consultation.groupBy({
-      by: ["userId"],
+      by: ['userId'],
       where: {
-        status: "SUCCESS",
+        status: 'SUCCESS',
         createdAt: {
           gte: previousMonthStart,
           lt: currentMonthStart,
@@ -857,9 +817,9 @@ const sendDisengagementSurvey = async (
       },
     }),
     prisma.consultation.groupBy({
-      by: ["userId"],
+      by: ['userId'],
       where: {
-        status: "SUCCESS",
+        status: 'SUCCESS',
         createdAt: {
           gte: currentMonthStart,
         },
@@ -870,9 +830,7 @@ const sendDisengagementSurvey = async (
     }),
   ]);
 
-  const currentMonthUserIds = new Set(
-    consultedCurrentMonth.map((row) => row.userId),
-  );
+  const currentMonthUserIds = new Set(consultedCurrentMonth.map((row) => row.userId));
   const surveyCandidateIds = consultedPreviousMonth
     .map((row) => row.userId)
     .filter((userId) => !currentMonthUserIds.has(userId))
@@ -892,7 +850,7 @@ const sendDisengagementSurvey = async (
       id: {
         in: surveyCandidateIds,
       },
-      status: "ACTIVE",
+      status: 'ACTIVE',
     },
     select: {
       id: true,
@@ -910,7 +868,7 @@ const sendDisengagementSurvey = async (
     const alreadySent = await prisma.auditLog.count({
       where: {
         userId: user.id,
-        action: "growth.survey.disengagement.sent",
+        action: 'growth.survey.disengagement.sent',
         createdAt: {
           gte: currentMonthStart,
         },
@@ -925,7 +883,7 @@ const sendDisengagementSurvey = async (
     const template = disengagementSurveyTemplate(
       normalizeName(user.name),
       SURVEY_QUESTIONS,
-      `${getAppBaseUrl()}/dashboard`,
+      `${getAppBaseUrl()}/dashboard`
     );
 
     const dispatchResult = await dispatchEmail(
@@ -933,19 +891,19 @@ const sendDisengagementSurvey = async (
       user.email,
       template.subject,
       template.html,
-      "growth_disengagement_survey",
+      'growth_disengagement_survey',
       {
         userId: user.id,
         occurredAt,
         agentId: AGENT_ID,
-      },
+      }
     );
 
     if (dispatchResult.sent) {
       sent += 1;
       await writeAuditLog({
         userId: user.id,
-        action: "growth.survey.disengagement.sent",
+        action: 'growth.survey.disengagement.sent',
         metadata: {
           occurredAt,
           agentId: AGENT_ID,
@@ -955,7 +913,7 @@ const sendDisengagementSurvey = async (
       failed += 1;
       await writeAuditLog({
         userId: user.id,
-        action: "growth.survey.disengagement.failed",
+        action: 'growth.survey.disengagement.failed',
         metadata: {
           occurredAt,
           error: dispatchResult.errorMessage,
@@ -965,9 +923,9 @@ const sendDisengagementSurvey = async (
     }
   }
 
-  if (mode === "DRY_RUN") {
+  if (mode === 'DRY_RUN') {
     await writeAuditLog({
-      action: "growth.survey.disengagement.dry_run",
+      action: 'growth.survey.disengagement.dry_run',
       metadata: {
         candidateUsers: users.length,
         attempted,
@@ -989,29 +947,21 @@ const sendDisengagementSurvey = async (
 
 const postHandler = async (request: Request) => {
   if (!isAuthorizedCronRequest(request)) {
-    return NextResponse.json(
-      { error: "Unauthorized cron request." },
-      { status: 401 },
-    );
+    return NextResponse.json({ error: 'Unauthorized cron request.' }, { status: 401 });
   }
 
   const mode = parseDispatchMode(request);
   const occurredAt = new Date().toISOString();
 
   try {
-    const [
-      weeklyCampaign,
-      onboarding,
-      retargeting,
-      weeklyIncompleteSummary,
-      disengagementSurvey,
-    ] = await Promise.all([
-      sendWeeklyCampaign(mode, occurredAt),
-      sendOnboardingLifecycle(mode, occurredAt),
-      sendAbandonedConsultationReminders(mode, occurredAt),
-      sendWeeklyIncompleteConsultationSummary(mode, occurredAt),
-      sendDisengagementSurvey(mode, occurredAt),
-    ]);
+    const [weeklyCampaign, onboarding, retargeting, weeklyIncompleteSummary, disengagementSurvey] =
+      await Promise.all([
+        sendWeeklyCampaign(mode, occurredAt),
+        sendOnboardingLifecycle(mode, occurredAt),
+        sendAbandonedConsultationReminders(mode, occurredAt),
+        sendWeeklyIncompleteConsultationSummary(mode, occurredAt),
+        sendDisengagementSurvey(mode, occurredAt),
+      ]);
 
     const summary = {
       mode,
@@ -1026,21 +976,20 @@ const postHandler = async (request: Request) => {
 
     await writeAuditLog({
       action:
-        mode === "CONFIRMED_SEND"
-          ? "growth.automation.run.confirmed"
-          : "growth.automation.run.dry_run",
+        mode === 'CONFIRMED_SEND'
+          ? 'growth.automation.run.confirmed'
+          : 'growth.automation.run.dry_run',
       metadata: summary,
     });
 
-    if (mode === "DRY_RUN") {
+    if (mode === 'DRY_RUN') {
       await notifyGrowthAlert({
-        subject: "CareAI growth automation dry run completed",
+        subject: 'CareAI growth automation dry run completed',
         summary:
-          "Growth automation generated campaign, onboarding, retargeting, weekly incomplete summaries, and disengagement survey batches in dry-run mode.",
+          'Growth automation generated campaign, onboarding, retargeting, weekly incomplete summaries, and disengagement survey batches in dry-run mode.',
         metadata: {
           ...summary,
-          message:
-            "No emails were sent. Re-run with confirmSend=true after human approval.",
+          message: 'No emails were sent. Re-run with confirmSend=true after human approval.',
         },
       });
     }
@@ -1051,25 +1000,17 @@ const postHandler = async (request: Request) => {
     });
   } catch (error) {
     await writeAuditLog({
-      action: "growth.automation.run.failed",
+      action: 'growth.automation.run.failed',
       metadata: {
         mode,
         occurredAt,
         agentId: AGENT_ID,
-        error:
-          error instanceof Error
-            ? error.message
-            : "Unknown growth automation failure",
+        error: error instanceof Error ? error.message : 'Unknown growth automation failure',
       },
     });
 
-    return NextResponse.json(
-      { error: "Failed to run growth automation." },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: 'Failed to run growth automation.' }, { status: 500 });
   }
 };
 
-export const POST = withApiRequestAudit(async (request) =>
-  postHandler(request),
-);
+export const POST = withApiRequestAudit(async (request) => postHandler(request));

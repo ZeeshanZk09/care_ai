@@ -10,7 +10,7 @@ export type PlanGatePayload = {
   error: string;
   code: 'PLAN_UPGRADE_REQUIRED';
   feature: string;
-  requiredPlan: PlanTier;
+  requiredPlan: Exclude<PlanTier, 'FREE'>;
   currentPlan: PlanTier;
 };
 
@@ -30,7 +30,7 @@ export const isPlanAtLeast = (currentPlan: PlanTier, requiredPlan: PlanTier) => 
 
 export const enforcePlanGate = (
   currentPlan: PlanTier,
-  requiredPlan: PlanTier,
+  requiredPlan: Exclude<PlanTier, 'FREE'>,
   feature: string
 ): PlanGateResult => {
   if (isPlanAtLeast(currentPlan, requiredPlan)) {
