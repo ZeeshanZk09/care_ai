@@ -135,21 +135,92 @@ export const freeToPaidCampaignTemplate = (
 
 export const freeUserOnboardingTemplate = (
   name: string | null,
-  day: 1 | 3 | 7,
+  day: 0 | 2 | 4 | 6 | 7,
   dashboardUrl: string,
 ): EmailTemplate => {
-  const messages: Record<1 | 3 | 7, string> = {
-    1: "Start your first consultation to unlock personalized symptom guidance.",
-    3: "Try specialist routing to get better-focused consultation outcomes.",
-    7: "Review your progress and consider Basic or Pro to keep momentum going.",
+  const pricingUrl = dashboardUrl.replace(/\/dashboard(?:\/)?$/, '/pricing');
+
+  const dayCopy: Record<
+    0 | 2 | 4 | 6 | 7,
+    {
+      subject: string;
+      body: string;
+      ctaLabel: string;
+      ctaUrl: string;
+    }
+  > = {
+    0: {
+      subject: 'CareAI Day 0: Welcome and quick feature tour',
+      body: 'Welcome to CareAI. Take a 2-minute product tour and see how to start your first symptom-focused consultation today.',
+      ctaLabel: 'Open Feature Tour',
+      ctaUrl: dashboardUrl,
+    },
+    2: {
+      subject: 'CareAI Day 2: Start your first consultation',
+      body: 'Your first consultation takes only a few minutes and helps unlock better specialist routing on your next sessions.',
+      ctaLabel: 'Start Consultation',
+      ctaUrl: dashboardUrl,
+    },
+    4: {
+      subject: 'CareAI Day 4: See how users improve outcomes',
+      body: 'Users who add clear symptom notes and complete follow-up prompts consistently receive stronger recommendations and faster next steps.',
+      ctaLabel: 'Continue Consultation',
+      ctaUrl: dashboardUrl,
+    },
+    6: {
+      subject: 'CareAI Day 6: Time-bound CARE30 offer expires soon',
+      body: 'Upgrade now with code CARE30 to unlock better report quality and avoid free-tier interruptions. This offer is time-bound.',
+      ctaLabel: 'Claim CARE30 Offer',
+      ctaUrl: pricingUrl,
+    },
+    7: {
+      subject: 'CareAI Day 7: Final CTA with plan comparison',
+      body: 'Final reminder: compare plans and pick the best fit for your monthly consultation volume and report quality needs.',
+      ctaLabel: 'Compare Plans',
+      ctaUrl: pricingUrl,
+    },
   };
 
+  const selected = dayCopy[day];
+  const includeComparisonTable = day === 7;
+  const comparisonTable = includeComparisonTable
+    ? `
+      <table style="border-collapse: collapse; width: 100%; margin-top: 12px;">
+        <thead>
+          <tr>
+            <th style="border: 1px solid #e5e7eb; padding: 8px; text-align: left;">Plan</th>
+            <th style="border: 1px solid #e5e7eb; padding: 8px; text-align: left;">Consultations</th>
+            <th style="border: 1px solid #e5e7eb; padding: 8px; text-align: left;">Report Quality</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="border: 1px solid #e5e7eb; padding: 8px;">Free</td>
+            <td style="border: 1px solid #e5e7eb; padding: 8px;">10 one-time</td>
+            <td style="border: 1px solid #e5e7eb; padding: 8px;">Standard</td>
+          </tr>
+          <tr>
+            <td style="border: 1px solid #e5e7eb; padding: 8px;">Basic</td>
+            <td style="border: 1px solid #e5e7eb; padding: 8px;">50 / month</td>
+            <td style="border: 1px solid #e5e7eb; padding: 8px;">Advanced</td>
+          </tr>
+          <tr>
+            <td style="border: 1px solid #e5e7eb; padding: 8px;">Pro</td>
+            <td style="border: 1px solid #e5e7eb; padding: 8px;">Unlimited</td>
+            <td style="border: 1px solid #e5e7eb; padding: 8px;">Comprehensive</td>
+          </tr>
+        </tbody>
+      </table>
+    `
+    : '';
+
   return {
-    subject: `CareAI onboarding day ${day}: next best step`,
+    subject: selected.subject,
     html: wrapTemplate(`
       <p>Hi ${name ?? "there"},</p>
-      <p>${messages[day]}</p>
-      <p><a href="${dashboardUrl}">Continue in dashboard</a></p>
+      <p>${selected.body}</p>
+      ${comparisonTable}
+      <p><a href="${selected.ctaUrl}">${selected.ctaLabel}</a></p>
     `),
   };
 };

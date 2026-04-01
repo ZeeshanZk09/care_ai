@@ -61,26 +61,6 @@ const parseUpgradePrompt = (value: unknown): UpgradePromptPayload | null => {
   };
 };
 
-const showUpgradePromptToast = (
-  router: ReturnType<typeof useRouter>,
-  prompt: UpgradePromptPayload,
-) => {
-  const variantCopy =
-    prompt.variant === 'DISCOUNT'
-      ? `Use code ${prompt.discountCode} within ${prompt.validDays} days.`
-      : 'Upgrade to unlock premium model quality and comprehensive reports.';
-
-  toast(prompt.title, {
-    description: `${prompt.message} ${variantCopy}`,
-    action: {
-      label: prompt.ctaLabel,
-      onClick: () => {
-        router.push(prompt.ctaHref);
-      },
-    },
-  });
-};
-
 export function AddNewSessionDialog() {
   const [note, setNote] = useState('');
   const [loading, setLoading] = useState(false);
@@ -192,6 +172,10 @@ export function DialogBody({
 }>) {
   const [selectedDoctorId, setSelectedDoctorId] = useState<number | null>(null);
   const [historyOfNotes, setHistoryOfNotes] = useState<string[]>([]);
+  const [upgradeOfferPrompt, setUpgradeOfferPrompt] = useState<UpgradePromptPayload | null>(null);
+  const [pendingConsultationSessionId, setPendingConsultationSessionId] = useState<string | null>(
+    null
+  );
   const router = useRouter();
   useEffect(() => {
     const storedNotes = localStorage.getItem('consultation_notes');
@@ -274,7 +258,8 @@ export function DialogBody({
         const message = errorBody?.error || 'Failed to start consultation. Please try again.';
         const upgradePrompt = parseUpgradePrompt(errorBody?.upgradePrompt);
         if (upgradePrompt) {
-          showUpgradePromptToast(router, upgradePrompt);
+          setUpgradeOfferPrompt(upgradePrompt);
+          setPendingConsultationSessionId(null);
         }
         console.error('Error starting consultation:', message);
         toast.error(message);
@@ -286,7 +271,9 @@ export function DialogBody({
 
       const upgradePrompt = parseUpgradePrompt(result?.upgradePrompt);
       if (upgradePrompt) {
-        showUpgradePromptToast(router, upgradePrompt);
+        setUpgradeOfferPrompt(upgradePrompt);
+        setPendingConsultationSessionId(result.sessionId);
+        return;
       }
 
       router.push(`/dashboard/medical-agent/${result.sessionId}`);
@@ -423,6 +410,50 @@ export function DialogBody({
           )}
         </div>
       </DialogFooter>
+
+      {upgradeOfferPrompt ? (
+        <div className='fixed inset-0 z-70 flex items-center justify-center bg-black/50 p-4'>
+          <div className='w-full max-w-md rounded-xl border bg-background p-5 shadow-xl'>
+            <p className='text-xs font-semibold uppercase tracking-wide text-primary'>
+              Upgrade Offer
+            </p>
+            <h3 className='mt-2 text-lg font-semibold'>{upgradeOfferPrompt.title}</h3>
+            <p className='mt-2 text-sm text-muted-foreground'>{upgradeOfferPrompt.message}</p>
+            <p className='mt-3 rounded-md border bg-muted/40 p-2 text-xs'>
+              {upgradeOfferPrompt.variant === 'DISCOUNT'
+                ? `Use code ${upgradeOfferPrompt.discountCode} within ${upgradeOfferPrompt.validDays} days to secure this offer.`
+                : 'Unlock premium model quality and comprehensive reports with an upgraded plan.'}
+            </p>
+
+            <div className='mt-4 flex flex-wrap justify-end gap-2'>
+              <Button
+                variant='outline'
+                onClick={() => {
+                  const resumeSessionId = pendingConsultationSessionId;
+                  setUpgradeOfferPrompt(null);
+                  setPendingConsultationSessionId(null);
+
+                  if (resumeSessionId) {
+                    router.push(`/dashboard/medical-agent/${resumeSessionId}`);
+                  }
+                }}
+              >
+                {pendingConsultationSessionId ? 'Continue Consultation' : 'Maybe Later'}
+              </Button>
+              <Button
+                onClick={() => {
+                  const destination = upgradeOfferPrompt.ctaHref;
+                  setUpgradeOfferPrompt(null);
+                  setPendingConsultationSessionId(null);
+                  router.push(destination);
+                }}
+              >
+                {upgradeOfferPrompt.ctaLabel}
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </DialogContent>
   );
 }

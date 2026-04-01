@@ -7,6 +7,7 @@ import type { PlanTier } from "@/lib/billing/plans";
 import { buildMetadata } from "@/lib/seo";
 import { buildOfferSchema } from "@/lib/structured-data";
 import PlanActionButton from "./_components/PlanActionButton";
+import PricingComparisonToggle from "./_components/PricingComparisonToggle";
 
 const pricingDescription =
   "Choose affordable AI health consultation plans with free trial access, 50 consultations per month on Basic, and unlimited Pro support with Pakistan-friendly pricing.";
@@ -187,55 +188,9 @@ export default async function PricingPage() {
         ))}
       </div>
 
-      <section className="mt-14 overflow-x-auto">
-        <h2 className="text-2xl font-semibold">Plan Comparison</h2>
-        <table className="mt-4 min-w-full rounded-xl border text-sm">
-          <thead className="bg-muted/50">
-            <tr>
-              <th className="border px-4 py-3 text-left">Feature</th>
-              <th className="border px-4 py-3 text-left">Free</th>
-              <th className="border px-4 py-3 text-left">Basic</th>
-              <th className="border px-4 py-3 text-left">Pro</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td className="border px-4 py-3">Consultations</td>
-              <td className="border px-4 py-3">10 one-time</td>
-              <td className="border px-4 py-3">50 per month</td>
-              <td className="border px-4 py-3">Unlimited</td>
-            </tr>
-            <tr>
-              <td className="border px-4 py-3">Specialist routing</td>
-              <td className="border px-4 py-3">Limited</td>
-              <td className="border px-4 py-3">Included</td>
-              <td className="border px-4 py-3">Priority</td>
-            </tr>
-            <tr>
-              <td className="border px-4 py-3">Model quality</td>
-              <td className="border px-4 py-3">Standard</td>
-              <td className="border px-4 py-3">Faster</td>
-              <td className="border px-4 py-3">Premium</td>
-            </tr>
-            <tr>
-              <td className="border px-4 py-3">Support</td>
-              <td className="border px-4 py-3">Email</td>
-              <td className="border px-4 py-3">Priority</td>
-              <td className="border px-4 py-3">24/7 priority</td>
-            </tr>
-            <tr>
-              <td className="border px-4 py-3">Cost efficiency</td>
-              <td className="border px-4 py-3">No monthly predictability</td>
-              <td className="border px-4 py-3">
-                Stable monthly budget for regular usage
-              </td>
-              <td className="border px-4 py-3">
-                Best value for high-frequency consultations
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <PricingComparisonToggle />
 
+      <section className="mt-4 overflow-x-auto">
         <div className="mt-4 rounded-lg border bg-muted/40 p-4 text-sm text-muted-foreground">
           Upgrade campaigns currently include <strong>CARE30</strong> for 30%
           off Pro for 7 days, improving conversion economics versus staying

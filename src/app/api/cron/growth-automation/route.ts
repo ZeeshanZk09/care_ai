@@ -36,7 +36,7 @@ const SURVEY_QUESTIONS = [
   "Would a limited-time Pro discount motivate you to resume consultations?",
 ];
 
-const ONBOARDING_DAYS = [1, 3, 7] as const;
+const ONBOARDING_DAYS = [0, 2, 4, 6, 7] as const;
 
 type OnboardingDay = (typeof ONBOARDING_DAYS)[number];
 type DispatchMode = "DRY_RUN" | "CONFIRMED_SEND";
