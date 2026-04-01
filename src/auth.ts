@@ -7,22 +7,27 @@ import { env } from '@/env';
 import prisma from '@/lib/prisma';
 import { notifySecurityAlert } from '@/lib/alerts';
 import { getClientIp, getUserAgent, writeAuditLog } from '@/lib/audit';
+import { accountRestrictedTemplate } from '@/lib/email-templates';
+import { sendEmail } from '@/lib/mail';
 import {
   clearCaptchaChallenge,
   consumeRateLimit,
   getCaptchaChallengePrompt,
   issueCaptchaChallenge,
-  resetRateLimit,
   verifyCaptchaChallenge,
 } from '@/lib/security/rate-limit';
 import bcrypt from 'bcryptjs';
 
-const SIGN_IN_WINDOW_MS = 10 * 60 * 1000;
+const SIGN_IN_WINDOW_MS = 60 * 60 * 1000;
 const SIGN_IN_MAX_ATTEMPTS = 5;
+const SIGN_IN_LOCK_THRESHOLD = 10;
+const SIGN_IN_LOCK_DURATION_MS = 60 * 60 * 1000;
 const CAPTCHA_CHALLENGE_TTL_MS = 10 * 60 * 1000;
 const FAILED_LOGIN_ALERT_THRESHOLD = 3;
 const FAILED_LOGIN_ALERT_WINDOW_MS = 5 * 60 * 1000;
 const FAILED_LOGIN_SPIKE_THRESHOLD = 10;
+const GLOBAL_FAILED_LOGIN_24H_THRESHOLD = 20;
+const GLOBAL_FAILED_LOGIN_ALERT_WINDOW_MS = 60 * 60 * 1000;
 const AGENT_ID = 'GPT-5.3-Codex';
 const CAPTCHA_ERROR_PREFIX = 'CAPTCHA_REQUIRED|';
 
@@ -159,6 +164,302 @@ type FailedSignInEventInput = {
   userAgent: string | null;
 };
 
+type AuthUserRecord = {
+  id: string;
+  email: string;
+  name: string | null;
+  password: string | null;
+  emailVerified: Date | null;
+  status: 'ACTIVE' | 'RESTRICTED' | 'BLOCKED';
+  restrictionReason: string | null;
+  restrictionEndsAt: Date | null;
+};
+
+type RollingFailureCounts = {
+  ipFailures: number;
+  userFailures: number;
+  combinedFailures: number;
+};
+
+const isFailedLoginLockActive = (user: AuthUserRecord, now = new Date()) => {
+  return (
+    user.status === 'RESTRICTED' &&
+    user.restrictionReason === 'FAILED_LOGIN_LOCK' &&
+    Boolean(user.restrictionEndsAt && user.restrictionEndsAt > now)
+  );
+};
+
+const clearExpiredFailedLoginLock = async (user: AuthUserRecord, now = new Date()) => {
+  if (
+    user.status !== 'RESTRICTED' ||
+    user.restrictionReason !== 'FAILED_LOGIN_LOCK' ||
+    !user.restrictionEndsAt ||
+    user.restrictionEndsAt > now
+  ) {
+    return;
+  }
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      status: 'ACTIVE',
+      restrictionReason: null,
+      restrictionEndsAt: null,
+    },
+  });
+};
+
+const getRollingFailureCounts = async (input: {
+  ipAddress: string | null;
+  userId?: string | null;
+}) => {
+  const since = new Date(Date.now() - SIGN_IN_WINDOW_MS);
+
+  const [ipFailures, userFailures] = await Promise.all([
+    input.ipAddress
+      ? prisma.auditLog.count({
+          where: {
+            action: 'auth.signin.failed',
+            ipAddress: input.ipAddress,
+            createdAt: {
+              gte: since,
+            },
+          },
+        })
+      : Promise.resolve(0),
+    input.userId
+      ? prisma.auditLog.count({
+          where: {
+            action: 'auth.signin.failed',
+            userId: input.userId,
+            createdAt: {
+              gte: since,
+            },
+          },
+        })
+      : Promise.resolve(0),
+  ]);
+
+  return {
+    ipFailures,
+    userFailures,
+    combinedFailures: Math.max(ipFailures, userFailures),
+  } as RollingFailureCounts;
+};
+
+const lockUserForFailedSignins = async (input: {
+  user: AuthUserRecord;
+  ipAddress: string | null;
+  userAgent: string | null;
+  email: string;
+}) => {
+  const lockUntil = new Date(Date.now() + SIGN_IN_LOCK_DURATION_MS);
+
+  await prisma.user.update({
+    where: { id: input.user.id },
+    data: {
+      status: 'RESTRICTED',
+      restrictionReason: 'FAILED_LOGIN_LOCK',
+      restrictionEndsAt: lockUntil,
+    },
+  });
+
+  const template = accountRestrictedTemplate(
+    input.user.name,
+    'Multiple failed sign-in attempts detected. Temporary lock enabled for account safety.',
+    lockUntil.toISOString()
+  );
+
+  try {
+    await sendEmail(input.user.email, template.subject, template.html, {
+      userId: input.user.id,
+      templateName: 'security_failed_login_lock',
+      metadata: {
+        reason: 'FAILED_LOGIN_LOCK',
+        lockUntil: lockUntil.toISOString(),
+      },
+    });
+  } catch {
+    // Ignore email dispatch failures; security alerting still runs.
+  }
+
+  await notifySecurityAlert({
+    subject: 'CareAI security lock: account temporarily restricted',
+    summary: `Account ${input.user.email} was temporarily locked after repeated failed sign-ins.`,
+    ipAddress: input.ipAddress,
+    userAgent: input.userAgent,
+    metadata: {
+      userId: input.user.id,
+      email: input.email,
+      lockUntil: lockUntil.toISOString(),
+      reason: 'FAILED_LOGIN_LOCK',
+      agentId: AGENT_ID,
+    },
+  });
+
+  return lockUntil;
+};
+
+type AuthorizeContext = {
+  normalizedEmail: string;
+  ipAddress: string | null;
+  userAgent: string | null;
+  captchaKey: string;
+};
+
+const buildAuthorizeContext = (
+  credentials:
+    | {
+        email?: unknown;
+      }
+    | undefined,
+  request: Request | undefined
+): AuthorizeContext => {
+  const normalizedEmail = normalizeEmailValue(credentials?.email);
+  const ipAddress = getClientIp(request?.headers ?? null);
+  const userAgent = getUserAgent(request?.headers ?? null);
+  const normalizedIp = ipAddress ?? 'unknown';
+
+  return {
+    normalizedEmail,
+    ipAddress,
+    userAgent,
+    captchaKey: `auth:signin:captcha:${normalizedIp}:${normalizedEmail}`,
+  };
+};
+
+const loadUserForAuthorize = async (normalizedEmail: string, now: Date) => {
+  let user = (await prisma.user.findUnique({
+    where: { email: normalizedEmail },
+  })) as AuthUserRecord | null;
+
+  if (!user) {
+    return null;
+  }
+
+  await clearExpiredFailedLoginLock(user, now);
+  if (
+    user.status === 'RESTRICTED' &&
+    user.restrictionReason === 'FAILED_LOGIN_LOCK' &&
+    user.restrictionEndsAt &&
+    user.restrictionEndsAt <= now
+  ) {
+    user = {
+      ...user,
+      status: 'ACTIVE',
+      restrictionReason: null,
+      restrictionEndsAt: null,
+    };
+  }
+
+  return user;
+};
+
+const enforceCaptchaForAuthorize = async (
+  context: AuthorizeContext,
+  combinedFailures: number,
+  captchaAnswer: unknown
+) => {
+  const existingCaptchaPrompt = getCaptchaChallengePrompt(context.captchaKey);
+  const captchaRequired = combinedFailures >= SIGN_IN_MAX_ATTEMPTS || Boolean(existingCaptchaPrompt);
+
+  if (!captchaRequired) {
+    return;
+  }
+
+  const normalizedCaptchaAnswer = typeof captchaAnswer === 'string' ? captchaAnswer : '';
+
+  if (!existingCaptchaPrompt) {
+    const challenge = issueCaptchaChallenge(context.captchaKey, CAPTCHA_CHALLENGE_TTL_MS);
+
+    await writeAuditLog({
+      action: 'auth.signin.captcha_issued',
+      ipAddress: context.ipAddress,
+      userAgent: context.userAgent,
+      metadata: {
+        email: context.normalizedEmail,
+        prompt: challenge.prompt,
+        retryAfterSeconds: Math.floor(CAPTCHA_CHALLENGE_TTL_MS / 1000),
+        occurredAt: new Date().toISOString(),
+        agentId: AGENT_ID,
+      },
+    });
+
+    throw new Error(
+      buildCaptchaErrorMessage(challenge.prompt, Math.floor(CAPTCHA_CHALLENGE_TTL_MS / 1000))
+    );
+  }
+
+  const captchaVerified = verifyCaptchaChallenge(context.captchaKey, normalizedCaptchaAnswer);
+  if (captchaVerified) {
+    await writeAuditLog({
+      action: 'auth.signin.captcha_passed',
+      ipAddress: context.ipAddress,
+      userAgent: context.userAgent,
+      metadata: {
+        email: context.normalizedEmail,
+        occurredAt: new Date().toISOString(),
+        agentId: AGENT_ID,
+      },
+    });
+    return;
+  }
+
+  await writeAuditLog({
+    action: 'auth.signin.captcha_required',
+    ipAddress: context.ipAddress,
+    userAgent: context.userAgent,
+    metadata: {
+      email: context.normalizedEmail,
+      prompt: existingCaptchaPrompt,
+      occurredAt: new Date().toISOString(),
+      agentId: AGENT_ID,
+    },
+  });
+
+  throw new Error(
+    buildCaptchaErrorMessage(existingCaptchaPrompt, Math.floor(CAPTCHA_CHALLENGE_TTL_MS / 1000))
+  );
+};
+
+const maybeLockUserForFailureThreshold = async (
+  user: AuthUserRecord | null,
+  combinedFailures: number,
+  context: AuthorizeContext
+) => {
+  if (!user || combinedFailures < SIGN_IN_LOCK_THRESHOLD) {
+    return null;
+  }
+
+  const lockUntil = await lockUserForFailedSignins({
+    user,
+    ipAddress: context.ipAddress,
+    userAgent: context.userAgent,
+    email: user.email,
+  });
+
+  throw new Error(
+    `Too many failed sign-in attempts. Your account is locked until ${lockUntil.toISOString()}.`
+  );
+};
+
+const handleFailedCredentialState = async (input: {
+  user: AuthUserRecord;
+  reason: 'INVALID_PASSWORD' | 'EMAIL_NOT_VERIFIED';
+  context: AuthorizeContext;
+  combinedFailures: number;
+}) => {
+  await recordFailedSignInAttempt({
+    userId: input.user.id,
+    ipAddress: input.context.ipAddress,
+    userAgent: input.context.userAgent,
+    email: input.user.email,
+    reason: input.reason,
+  });
+
+  await maybeLockUserForFailureThreshold(input.user, input.combinedFailures + 1, input.context);
+};
+
 const recordFailedSignInAttempt = async ({
   userId,
   email,
@@ -258,6 +559,157 @@ const recordFailedSignInAttempt = async ({
       });
     }
   }
+
+  const failedLogins24h = await prisma.auditLog.count({
+    where: {
+      action: 'auth.signin.failed',
+      createdAt: {
+        gte: new Date(Date.now() - 24 * 60 * 60 * 1000),
+      },
+    },
+  });
+
+  if (failedLogins24h > GLOBAL_FAILED_LOGIN_24H_THRESHOLD) {
+    const globalDispatch = consumeRateLimit(
+      'auth:signin:global24h:dispatch',
+      1,
+      GLOBAL_FAILED_LOGIN_ALERT_WINDOW_MS
+    );
+
+    if (globalDispatch.allowed) {
+      await writeAuditLog({
+        userId: userId ?? null,
+        action: 'security.monitoring.failed_logins_24h.threshold_exceeded',
+        ipAddress,
+        userAgent,
+        metadata: {
+          failedLogins24h,
+          threshold: GLOBAL_FAILED_LOGIN_24H_THRESHOLD,
+          occurredAt,
+          email,
+          reason,
+          agentId: AGENT_ID,
+        },
+      });
+
+      await notifySecurityAlert({
+        subject: 'CareAI security alert: failed-logins exceeded 24h threshold',
+        summary:
+          'Global failed sign-ins exceeded the 24-hour threshold. Challenge and lock controls should be verified.',
+        ipAddress,
+        userAgent,
+        metadata: {
+          failedLogins24h,
+          threshold: GLOBAL_FAILED_LOGIN_24H_THRESHOLD,
+          occurredAt,
+          email,
+          reason,
+          agentId: AGENT_ID,
+        },
+      });
+    }
+  }
+};
+
+const authorizeCredentials = async (
+  credentials:
+    | {
+        email?: unknown;
+        password?: unknown;
+        captchaAnswer?: unknown;
+      }
+    | undefined,
+  request: Request | undefined,
+) => {
+  if (!credentials?.email || !credentials?.password) return null;
+
+  const context = buildAuthorizeContext(credentials, request);
+  const now = new Date();
+
+  const user = await loadUserForAuthorize(context.normalizedEmail, now);
+
+  if (user && isFailedLoginLockActive(user, now)) {
+    throw new Error('Too many failed sign-in attempts. Your account is temporarily locked.');
+  }
+
+  const rollingFailures = await getRollingFailureCounts({
+    ipAddress: context.ipAddress,
+    userId: user?.id ?? null,
+  });
+  await enforceCaptchaForAuthorize(context, rollingFailures.combinedFailures, credentials.captchaAnswer);
+  await maybeLockUserForFailureThreshold(user, rollingFailures.combinedFailures, context);
+
+  if (!user?.password) {
+    await recordFailedSignInAttempt({
+      ipAddress: context.ipAddress,
+      userAgent: context.userAgent,
+      email: context.normalizedEmail,
+      reason: 'USER_NOT_FOUND_OR_PASSWORDLESS',
+    });
+    return null;
+  }
+
+  if (user.status === 'BLOCKED') {
+    await writeAuditLog({
+      userId: user.id,
+      action: 'auth.signin.blocked',
+      ipAddress: context.ipAddress,
+      userAgent: context.userAgent,
+      metadata: {
+        email: user.email,
+      },
+    });
+
+    throw new Error('Your account is blocked. Contact support for assistance.');
+  }
+
+  if (user.status === 'RESTRICTED' && user.restrictionReason !== 'FAILED_LOGIN_LOCK') {
+    throw new Error('Your account is currently restricted. Please contact support.');
+  }
+
+  const isMatch = await bcrypt.compare(credentials.password as string, user.password);
+  if (!isMatch) {
+    await handleFailedCredentialState({
+      user,
+      reason: 'INVALID_PASSWORD',
+      context,
+      combinedFailures: rollingFailures.combinedFailures,
+    });
+
+    return null;
+  }
+
+  if (!user.emailVerified) {
+    await handleFailedCredentialState({
+      user,
+      reason: 'EMAIL_NOT_VERIFIED',
+      context,
+      combinedFailures: rollingFailures.combinedFailures,
+    });
+
+    throw new Error('Email not verified');
+  }
+
+  clearCaptchaChallenge(context.captchaKey);
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      lastActiveAt: new Date(),
+    },
+  });
+
+  await writeAuditLog({
+    userId: user.id,
+    action: 'auth.signin.success',
+    ipAddress: context.ipAddress,
+    userAgent: context.userAgent,
+    metadata: {
+      email: user.email,
+    },
+  });
+
+  return user;
 };
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
@@ -289,157 +741,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         captchaAnswer: { label: 'Captcha', type: 'text' },
       },
       async authorize(credentials, request) {
-        if (!credentials?.email || !credentials?.password) return null;
-
-        const normalizedEmail = normalizeEmailValue(credentials.email);
-        const ipAddress = getClientIp(request?.headers ?? null);
-        const userAgent = getUserAgent(request?.headers ?? null);
-        const normalizedIp = ipAddress ?? 'unknown';
-        const limiterKey = `auth:signin:${normalizedIp}`;
-        const captchaKey = `auth:signin:captcha:${normalizedIp}`;
-        const existingCaptchaPrompt = getCaptchaChallengePrompt(captchaKey);
-
-        if (existingCaptchaPrompt) {
-          const captchaAnswer =
-            typeof credentials.captchaAnswer === 'string' ? credentials.captchaAnswer : '';
-          const captchaVerified = verifyCaptchaChallenge(captchaKey, captchaAnswer);
-
-          if (!captchaVerified) {
-            await writeAuditLog({
-              action: 'auth.signin.captcha_required',
-              ipAddress,
-              userAgent,
-              metadata: {
-                email: normalizedEmail,
-                prompt: existingCaptchaPrompt,
-                occurredAt: new Date().toISOString(),
-                agentId: AGENT_ID,
-              },
-            });
-
-            throw new Error(
-              buildCaptchaErrorMessage(
-                existingCaptchaPrompt,
-                Math.floor(CAPTCHA_CHALLENGE_TTL_MS / 1000)
-              )
-            );
-          }
-
-          resetRateLimit(limiterKey);
-          await writeAuditLog({
-            action: 'auth.signin.captcha_passed',
-            ipAddress,
-            userAgent,
-            metadata: {
-              email: normalizedEmail,
-              occurredAt: new Date().toISOString(),
-              agentId: AGENT_ID,
-            },
-          });
-        }
-
-        const limitResult = consumeRateLimit(limiterKey, SIGN_IN_MAX_ATTEMPTS, SIGN_IN_WINDOW_MS);
-
-        if (!limitResult.allowed) {
-          const challenge = issueCaptchaChallenge(captchaKey, CAPTCHA_CHALLENGE_TTL_MS);
-
-          await recordFailedSignInAttempt({
-            email: normalizedEmail,
-            reason: 'RATE_LIMIT_EXCEEDED',
-            ipAddress,
-            userAgent,
-          });
-
-          await writeAuditLog({
-            action: 'auth.signin.captcha_issued',
-            ipAddress,
-            userAgent,
-            metadata: {
-              email: normalizedEmail,
-              prompt: challenge.prompt,
-              retryAfterSeconds: limitResult.retryAfterSeconds,
-              occurredAt: new Date().toISOString(),
-              agentId: AGENT_ID,
-            },
-          });
-
-          throw new Error(
-            buildCaptchaErrorMessage(challenge.prompt, limitResult.retryAfterSeconds)
-          );
-        }
-
-        const user = await prisma.user.findUnique({
-          where: { email: normalizedEmail },
-        });
-
-        if (!user?.password) {
-          await recordFailedSignInAttempt({
-            ipAddress,
-            userAgent,
-            email: normalizedEmail,
-            reason: 'USER_NOT_FOUND_OR_PASSWORDLESS',
-          });
-          return null;
-        }
-
-        if (user.status === 'BLOCKED') {
-          await writeAuditLog({
-            userId: user.id,
-            action: 'auth.signin.blocked',
-            ipAddress,
-            userAgent,
-            metadata: {
-              email: user.email,
-            },
-          });
-
-          throw new Error('Your account is blocked. Contact support for assistance.');
-        }
-
-        const isMatch = await bcrypt.compare(credentials.password as string, user.password);
-        if (!isMatch) {
-          await recordFailedSignInAttempt({
-            userId: user.id,
-            ipAddress,
-            userAgent,
-            email: user.email,
-            reason: 'INVALID_PASSWORD',
-          });
-          return null;
-        }
-
-        if (!user.emailVerified) {
-          await recordFailedSignInAttempt({
-            userId: user.id,
-            ipAddress,
-            userAgent,
-            email: user.email,
-            reason: 'EMAIL_NOT_VERIFIED',
-          });
-          throw new Error('Email not verified');
-        }
-
-        resetRateLimit(limiterKey);
-        clearCaptchaChallenge(captchaKey);
-
-        await prisma.user.update({
-          where: { id: user.id },
-          data: {
-            lastActiveAt: new Date(),
-          },
-        });
-
-        await writeAuditLog({
-          userId: user.id,
-          action: 'auth.signin.success',
-          ipAddress,
-          userAgent,
-          metadata: {
-            email: user.email,
-          },
-        });
-
-        return user;
+        return authorizeCredentials(credentials, request);
       },
     }),
   ],
